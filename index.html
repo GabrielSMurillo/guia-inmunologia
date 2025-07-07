@@ -70,11 +70,6 @@
         <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Guía de Estudio Avanzada de Inmunología</h1>
         <p class="mt-2 text-slate-600">Pon a prueba tus conocimientos de forma interactiva.</p>
 
-        <!-- ===== INICIO DE LA NOTA DE DESCARGO ===== -->
-        <div class="mt-6 text-sm text-slate-500 italic bg-slate-100 p-4 rounded-lg border border-slate-200">
-            <p><strong>Nota Importante:</strong> Esta aplicación es una herramienta de estudio y se proporciona "tal cual", con fines exclusivamente educativos. Aunque se ha realizado un esfuerzo por asegurar la precisión del contenido, no se garantiza que esté libre de errores. Úsela como un complemento y no como su única fuente de estudio. El autor no se hace responsable de las consecuencias académicas o de cualquier otro tipo derivadas del uso de esta herramienta.</p>
-        </div>
-
         <nav id="category-filters" class="flex flex-wrap justify-center gap-2 mb-8">
             <button data-category="all" class="btn-filter active py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Todos los Temas</button>
             <button data-category="celulas" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Células y Moléculas</button>
@@ -83,6 +78,19 @@
         </nav>
         
         <main id="quiz-container" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+            <!-- ===== INICIO: NUEVOS ELEMENTOS DE GAMIFICACIÓN ===== -->
+            <div class="flex justify-around mb-4 text-center">
+                <div>
+                    <span class="text-sm font-medium text-slate-500">Puntuación</span>
+                    <p id="score" class="text-2xl font-bold text-amber-500">0</p>
+                </div>
+                <div>
+                    <span class="text-sm font-medium text-slate-500">Racha 🔥</span>
+                    <p id="streak" class="text-2xl font-bold text-amber-500">0</p>
+                </div>
+            </div>
+            <!-- ===== FIN: NUEVOS ELEMENTOS DE GAMIFICACIÓN ===== -->
+
             <div id="progress" class="text-center text-sm font-semibold text-amber-600 mb-4"></div>
             
             <h2 id="question-text" class="text-xl md:text-2xl font-semibold mb-6 text-slate-900 text-center"></h2>
@@ -93,18 +101,6 @@
             <div id="explanation-container" class="explanation-section mt-6">
                 <h3 class="font-bold text-lg text-slate-800 border-b-2 border-amber-300 pb-2 mb-3">Explicación Detallada</h3>
                 <div id="explanation-text" class="text-slate-700 space-y-2"></div>
-                
-                <div class="mt-4 text-center">
-                    <button id="explain-more-btn" class="py-2 px-5 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
-                        <span id="explain-more-spinner" class="spinner hidden"></span>
-                        ✨ Explicar más
-                    </button>
-                </div>
-                <div id="ai-explanation-container" class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200 hidden">
-                    <h4 class="font-semibold text-amber-800 mb-2">Explicación Adicional (IA)</h4>
-                    <div id="ai-explanation-text" class="text-amber-700"></div>
-                </div>
-            </div>
 
             <div id="navigation-container" class="flex justify-between mt-8 pt-6 border-t border-slate-200">
                 <button id="prev-btn" class="py-2 px-5 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 transition disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
@@ -113,6 +109,24 @@
         </main>
 
     </div>
+<!-- ... aquí termina tu <main> ... -->
+        </main>
+
+    </div> <!-- ESTE ES EL CIERRE DEL CONTENEDOR PRINCIPAL -->
+
+    <!-- ============================================ -->
+    <!-- =====      PÉGALO EXACTAMENTE AQUÍ     ===== -->
+    <!-- ============================================ -->
+    <footer class="w-full mt-auto py-6 text-center">
+        <div class="container mx-auto max-w-4xl px-4">
+            <p class="text-xs text-slate-400">
+                <strong>Descargo de Responsabilidad:</strong> Esta es una herramienta de estudio con fines educativos. El contenido se proporciona "tal cual" y, aunque se ha hecho un esfuerzo por verificar su exactitud, pueden existir errores. Utilice esta guía como un complemento y no como única fuente de información. El autor no asume responsabilidad por los resultados académicos derivados de su uso.
+            </p>
+        </div>
+    </footer>
+    <!-- ============================================ -->
+    <!-- =====      HASTA AQUÍ LLEGA EL FOOTER   ===== -->
+    <!-- ============================================ -->
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -849,6 +863,10 @@
             let filteredQuestions = [...questions];
             let answered = false;
             let userSelections = {};
+            let score = 0;
+            let streak = 0;
+            const scoreEl = document.getElementById('score');
+            const streakEl = document.getElementById('streak');
 
             const questionTextEl = document.getElementById('question-text');
             const optionsContainerEl = document.getElementById('options-container');
@@ -858,10 +876,11 @@
             const nextBtn = document.getElementById('next-btn');
             const prevBtn = document.getElementById('prev-btn');
             const categoryFilters = document.getElementById('category-filters');
-            const explainMoreBtn = document.getElementById('explain-more-btn');
-            const explainMoreSpinner = document.getElementById('explain-more-spinner');
-            const aiExplanationContainer = document.getElementById('ai-explanation-container');
-            const aiExplanationText = document.getElementById('ai-explanation-text');
+
+            function updateGamificationUI() {
+                scoreEl.textContent = score;
+                streakEl.textContent = streak;
+            }
 
             function renderQuestion(index) {
                 answered = false;
@@ -904,81 +923,49 @@
             }
 
             function selectAnswer(selectedButton, question) {
-                if (answered) return;
+                    // Si la pregunta ya fue respondida, no hacer nada.
+                    if (answered) return;
 
-                answered = true;
-                const buttons = optionsContainerEl.querySelectorAll('.option-card');
+                    // Marcar la pregunta como respondida para evitar múltiples clics.
+                    answered = true;
+                    const buttons = optionsContainerEl.querySelectorAll('.option-card');
+                    const isCorrectClick = selectedButton.dataset.correct === 'true';
 
-                if (question.isMultipleChoice) {
-                    const userSelectedIndices = new Set([parseInt(selectedButton.dataset.index)]);
-                    
+                    // --- Lógica de Puntuación y Racha ---
+                    if (isCorrectClick) {
+                        // Para preguntas de opción múltiple, se podría dar puntos solo si se seleccionan todas las correctas.
+                        // Por simplicidad, daremos puntos si el primer clic es en una opción correcta.
+                        score += 10; // Suma 10 puntos
+                        streak++;    // Aumenta la racha
+                    } else {
+                        streak = 0;  // Si la respuesta es incorrecta, la racha se reinicia
+                    }
+                    // Actualiza los marcadores en la pantalla
+                    updateGamificationUI();
+                    // --- Fin de la Lógica de Gamificación ---
+
+
+                    // --- Lógica Visual para mostrar respuestas ---
                     buttons.forEach(button => {
-                        const isCorrect = button.dataset.correct === 'true';
-                        const isSelected = button === selectedButton;
-
-                        if (isCorrect) {
-                            button.classList.add('correct-answer');
-                        }
-                        if (isSelected && !isCorrect) {
-                            button.classList.add('incorrect-answer');
-                        }
+                        // Deshabilita todos los botones después de responder.
                         button.disabled = true;
-                    });
 
-                } else {
-                    const isCorrect = selectedButton.dataset.correct === 'true';
-                    buttons.forEach(button => {
-                        button.disabled = true;
+                        // Si un botón es la respuesta correcta, píntalo de verde.
                         if (button.dataset.correct === 'true') {
                             button.classList.add('correct-answer');
                         }
-                        if (button === selectedButton && !isCorrect) {
+
+                        // Si el botón presionado fue incorrecto, píntalo de rojo.
+                        if (button === selectedButton && !isCorrectClick) {
                             button.classList.add('incorrect-answer');
                         }
                     });
+
+                    // Muestra la sección de la explicación.
+                    explanationContainerEl.classList.add('visible');
                 }
-                
-                explanationContainerEl.classList.add('visible');
-            }
 
-            async function getAIExplanation() {
-                explainMoreBtn.disabled = true;
-                explainMoreSpinner.classList.remove('hidden');
-                aiExplanationContainer.classList.add('hidden');
-                aiExplanationText.innerHTML = '';
-
-                const currentQuestion = filteredQuestions[currentQuestionIndex];
-                const prompt = `Dada la siguiente pregunta de inmunología y su explicación, proporciona una explicación ligeramente más detallada y elaborada, centrándote en conceptos clave y sus implicaciones. Mantenla concisa pero añade más profundidad que la explicación original.
-                Pregunta: ${currentQuestion.question}
-                Explicación Original: ${explanationTextEl.innerHTML}`;
-
-                try {
-                    const apiKey = ""; 
-                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key=${apiKey}`;
-                    
-                    const response = await fetch(apiUrl, {
-                        method: 'POST',
-                        headers: { 'Content-Type': 'application/json' },
-                        body: JSON.stringify({ contents: [{ parts: [{ text: prompt }] }] })
-                    });
-                    const result = await response.json();
-
-                    if (result.candidates && result.candidates[0].content.parts[0].text) {
-                        const text = result.candidates[0].content.parts[0].text;
-                        aiExplanationText.innerHTML = text.replace(/\n/g, '<br>');
-                        aiExplanationContainer.classList.remove('hidden');
-                    } else {
-                        throw new Error('Invalid AI response structure');
-                    }
-                } catch (error) {
-                    console.error('Error fetching AI explanation:', error);
-                    aiExplanationText.innerHTML = 'Hubo un error al conectar con la IA. Por favor, inténtalo de nuevo más tarde.';
-                    aiExplanationContainer.classList.remove('hidden');
-                } finally {
-                    explainMoreSpinner.classList.add('hidden');
-                }
-            }
-
+            
             function showNext() {
                 if (currentQuestionIndex < filteredQuestions.length - 1) {
                     currentQuestionIndex++;
@@ -994,6 +981,11 @@
             }
 
             function filterQuestions(category) {
+                        // ===== INICIO: REINICIO DE GAMIFICACIÓN =====
+                score = 0;
+                streak = 0;
+                updateGamificationUI();
+                // ===== FIN: REINICIO DE GAMIFICACIÓN =====
                 if (category === 'all') {
                     filteredQuestions = [...questions];
                 } else {
@@ -1008,7 +1000,6 @@
 
             nextBtn.addEventListener('click', showNext);
             prevBtn.addEventListener('click', showPrev);
-            explainMoreBtn.addEventListener('click', getAIExplanation);
             categoryFilters.addEventListener('click', (e) => {
                 if (e.target.tagName === 'BUTTON') {
                     filterQuestions(e.target.dataset.category);
