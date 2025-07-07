@@ -11,8 +11,9 @@
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f8fafc; /* Slate 50 */
+            background-color: #f8fafc;
         }
+        
         .option-card {
             transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
         }
@@ -27,61 +28,56 @@
             opacity: 0;
         }
         .explanation-section.visible {
-            max-height: 2000px; /* Increased max-height for longer explanations */
+            max-height: 2000px;
             opacity: 1;
         }
         .btn-filter.active {
-            background-color: #fbbf24; /* Amber 400 */
-            color: #422006; /* Dark Amber text */
+            background-color: #fbbf24;
+            color: #422006;
             font-weight: 600;
         }
         .correct-answer {
-            background-color: #dcfce7 !important; /* Green 100 */
-            border-color: #22c55e !important; /* Green 500 */
+            background-color: #dcfce7 !important;
+            border-color: #22c55e !important;
         }
         .incorrect-answer {
-            background-color: #fee2e2 !important; /* Red 100 */
-            border-color: #ef4444 !important; /* Red 500 */
+            background-color: #fee2e2 !important;
+            border-color: #ef4444 !important;
         }
-        .selected-incorrect {
-            opacity: 0.7;
+
+        /* --- Estilo para el campo de salto de pregunta --- */
+        #question-jumper:focus {
+            outline: 2px solid #fbbf24; /* amber-400 */
+            border-color: #fbbf24;
+            box-shadow: none;
         }
-        .spinner {
-            border: 4px solid rgba(0, 0, 0, 0.1);
-            border-left-color: #f97316; /* Orange 500 */
-            border-radius: 50%;
-            width: 24px;
-            height: 24px;
-            animation: spin 1s linear infinite;
-            display: inline-block;
-            vertical-align: middle;
-            margin-right: 8px;
+        /* Ocultar las flechas en el input de tipo número */
+        #question-jumper::-webkit-outer-spin-button,
+        #question-jumper::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
         }
-        @keyframes spin {
-            0% { transform: rotate(0deg); }
-            100% { transform: rotate(360deg); }
+        #question-jumper {
+            -moz-appearance: textfield;
         }
     </style>
 </head>
 <body class="text-slate-800">
 
     <div class="container mx-auto p-4 md:p-8 max-w-4xl">
-    <header class="text-center mb-8">
-        <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Guía de Estudio Avanzada de Inmunología</h1>
-        <p class="mt-2 text-slate-600">Pon a prueba tus conocimientos de forma interactiva.</p>
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Guía de Estudio Avanzada de Inmunología</h1>
+            <p class="mt-2 text-slate-600">Pon a prueba tus conocimientos de forma interactiva.</p>
+        </header>
 
         <nav id="category-filters" class="flex flex-wrap justify-center gap-2 mb-8">
             <button data-category="all" class="btn-filter active py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Todos los Temas</button>
             <button data-category="celulas" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Células y Moléculas</button>
             <button data-category="procesos" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Procesos Inmunes</button>
             <button data-category="patologia" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Patología y Diagnóstico</button>
-            <button data-category="repaso" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Repaso 🧠</button>
         </nav>
         
-        <!-- Reemplaza desde <main> hasta antes de <footer> con esto -->
-
         <main id="quiz-container" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
-            <!-- ===== INICIO: NUEVOS ELEMENTOS DE GAMIFICACIÓN ===== -->
             <div class="flex justify-around mb-4 text-center">
                 <div>
                     <span class="text-sm font-medium text-slate-500">Puntuación</span>
@@ -92,37 +88,36 @@
                     <p id="streak" class="text-2xl font-bold text-amber-500">0</p>
                 </div>
             </div>
-            <!-- ===== FIN: NUEVOS ELEMENTOS DE GAMIFICACIÓN ===== -->
 
-            <div id="progress" class="text-center text-sm font-semibold text-amber-600 mb-4"></div>
+            <!-- ===== INICIO: NUEVO NAVEGADOR DE PREGUNTAS ===== -->
+            <div id="progress-container" class="flex justify-center items-center gap-2 text-center text-sm font-semibold text-slate-500 mb-4">
+                <span>Pregunta</span>
+                <input type="number" id="question-jumper" class="w-16 text-center bg-slate-100 border border-slate-300 rounded-md py-1 transition focus:bg-white">
+                <span id="total-questions-span">de 215</span>
+                <button id="jump-btn" class="px-3 py-1 bg-amber-400 text-amber-900 rounded-md font-semibold hover:bg-amber-500 transition text-xs">Ir</button>
+            </div>
+            <!-- ===== FIN: NUEVO NAVEGADOR DE PREGUNTAS ===== -->
             
             <h2 id="question-text" class="text-xl md:text-2xl font-semibold mb-6 text-slate-900 text-center"></h2>
-
-            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
-            </div>
-
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4"></div>
             <div id="explanation-container" class="explanation-section mt-6">
                 <h3 class="font-bold text-lg text-slate-800 border-b-2 border-amber-300 pb-2 mb-3">Explicación Detallada</h3>
                 <div id="explanation-text" class="text-slate-700 space-y-2"></div>
             </div>
-
             <div id="navigation-container" class="flex justify-between mt-8 pt-6 border-t border-slate-200">
                 <button id="prev-btn" class="py-2 px-5 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 transition disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
                 <button id="next-btn" class="py-2 px-5 bg-amber-400 text-amber-900 font-semibold rounded-lg hover:bg-amber-500 transition">Siguiente</button>
             </div>
         </main>
-
-        </div> <!-- ESTE CIERRE DE DIV ES EL QUE FALTABA -->
-    <footer class="w-full mt-auto py-6 text-center">
-        <div class="container mx-auto max-w-4xl px-4">
-            <p class="text-xs text-slate-400">
-                <strong>Descargo de Responsabilidad:</strong> Esta es una herramienta de estudio con fines educativos. El contenido se proporciona "tal cual" y, aunque se ha hecho un esfuerzo por verificar su exactitud, pueden existir errores. Utilice esta guía como un complemento y no como única fuente de información. El autor no asume responsabilidad por los resultados académicos derivados de su uso.
-            </p>
-        </div>
-    </footer>
-    <!-- ============================================ -->
-    <!-- =====      HASTA AQUÍ LLEGA EL FOOTER   ===== -->
-    <!-- ============================================ -->
+        
+        <footer class="w-full mt-12 py-6 text-center">
+            <div class="container mx-auto max-w-4xl px-4">
+                <p class="text-xs text-slate-500">
+                    <strong>Descargo de Responsabilidad:</strong> Esta es una herramienta de estudio con fines educativos. El contenido se proporciona "tal cual" y, aunque se ha hecho un esfuerzo por verificar su exactitud, pueden existir errores. Utilice esta guía como un complemento y no como única fuente de información. El autor no asume responsabilidad por los resultados académicos derivados de su uso.
+                </p>
+            </div>
+        </footer>
+    </div>
 
     <script>
         document.addEventListener('DOMContentLoaded', () => {
@@ -2307,6 +2302,347 @@
         ],
         isMultipleChoice: false,
         explanation: '<ul><li class="mb-2"><b>Ácidos grasos de cadena corta (Respuesta Correcta):</b> Esta es la excepción. Los ácidos grasos de cadena corta (como butirato, propionato), producidos por la fermentación de fibra por la microbiota intestinal, tienen efectos mayoritariamente **inmunomoduladores y anti-inflamatorios**, y se asocian con la promoción de la salud intestinal y la tolerancia inmune.</li><li class="mb-2"><b>Tabaco, Luz UV, Microorganismos (Incorrectos):</b> Son factores ambientales bien establecidos que pueden desencadenar o exacerbar la autoinmunidad. El tabaco se asocia con la artritis reumatoide. La luz UV puede desencadenar brotes de lupus. Los microorganismos pueden iniciar la autoinmunidad por mimetismo molecular o activación bystander.</li></ul>'
+    },
+    {
+        id: 216,
+        category: 'patologia',
+        question: 'Un hombre de 25 años presenta angioedema recurrente en cara y laringe, sin urticaria, a menudo tras un trauma menor. Su hermano tiene síntomas similares. Los niveles de C4 están marcadamente disminuidos, incluso entre episodios. ¿Cuál es el defecto subyacente?',
+        options: [
+            { text: 'Deficiencia del inhibidor de C1 esterasa (C1-INH)', correct: true },
+            { text: 'Alergia mediada por IgE a un alérgeno desconocido', correct: false },
+            { text: 'Deficiencia del componente C3 del complemento', correct: false },
+            { text: 'Activación del inflamasoma NLRP3', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Deficiencia de C1-INH (Respuesta Correcta):</b> El cuadro de angioedema sin urticaria (no histaminérgico), con un claro desencadenante por trauma y un patrón familiar, es clásico del Angioedema Hereditario (AEH). La deficiencia de C1-INH lleva a una activación incontrolada de la vía clásica del complemento (consumiendo C4) y del sistema de calicreína, resultando en una producción excesiva de bradicinina, el mediador del edema.</li><li class="mb-2"><b>Alergia IgE (Incorrecto):</b> El angioedema alérgico se acompaña típicamente de urticaria (ronchas) y es mediado por histamina, no por bradicinina.</li><li class="mb-2"><b>Deficiencia de C3 (Incorrecto):</b> Causa susceptibilidad a infecciones bacterianas graves, no angioedema.</li><li class="mb-2"><b>Activación del inflamasoma (Incorrecto):</b> Conduce a la producción de IL-1β e IL-18 y síndromes autoinflamatorios, no a este tipo de angioedema.</li></ul>'
+    },
+    {
+        id: 217,
+        category: 'patologia',
+        question: 'Una niña de 5 años con eccema severo, petequias y múltiples infecciones de oído. El hemograma revela plaquetas pequeñas y en bajo número (trombocitopenia). ¿Qué inmunodeficiencia primaria es la más probable?',
+        options: [
+            { text: 'Síndrome de Chédiak-Higashi', correct: false },
+            { text: 'Ataxia-Telangiectasia', correct: false },
+            { text: 'Síndrome de Wiskott-Aldrich (WAS)', correct: true },
+            { text: 'Enfermedad Granulomatosa Crónica (EGC)', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Síndrome de Wiskott-Aldrich (Respuesta Correcta):</b> La tríada clásica de trombocitopenia (con plaquetas pequeñas), eccema e infecciones recurrentes es patognomónica del WAS. Es una enfermedad ligada al X causada por una mutación en el gen WASp, que es crucial para la reorganización del citoesqueleto de actina en las células hematopoyéticas, afectando la función de linfocitos y plaquetas.</li><li class="mb-2"><b>Chédiak-Higashi (Incorrecto):</b> Se caracteriza por albinismo parcial, gránulos gigantes en leucocitos e infecciones.</li><li class="mb-2"><b>Ataxia-Telangiectasia (Incorrecto):</b> Presenta ataxia cerebelosa, telangiectasias y una inmunodeficiencia combinada.</li><li class="mb-2"><b>EGC (Incorrecto):</b> Causa abscesos y granulomas por un defecto en la función fagocítica, sin eccema ni trombocitopenia.</li></ul>'
+    },
+    {
+        id: 218,
+        category: 'patologia',
+        question: 'Un paciente con artritis reumatoide en tratamiento con Infliximab (anti-TNF-α) desarrolla fiebre y tos persistente. La radiografía de tórax muestra un infiltrado en el lóbulo superior derecho. ¿Qué infección oportunista debe sospecharse con mayor prioridad?',
+        options: [
+            { text: 'Neumonía por Pneumocystis jirovecii', correct: false },
+            { text: 'Reactivación de Tuberculosis latente', correct: true },
+            { text: 'Infección por Citomegalovirus (CMV)', correct: false },
+            { text: 'Aspergilosis pulmonar invasiva', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Reactivación de Tuberculosis (Respuesta Correcta):</b> El TNF-α es una citocina fundamental para la formación y mantenimiento de los granulomas que contienen al *Mycobacterium tuberculosis*. La terapia con inhibidores de TNF-α puede desestabilizar estos granulomas, permitiendo la reactivación de una infección latente. Por ello, el despistaje de TB latente es obligatorio antes de iniciar estos fármacos.</li><li class="mb-2"><b>Pneumocystis y CMV (Incorrectos):</b> Son más comunes en pacientes con inmunodeficiencia celular severa (linfopenia T), como en el SIDA avanzado o en trasplantados.</li><li class="mb-2"><b>Aspergilosis (Incorrecto):</b> Se asocia más con neutropenia prolongada o uso de altas dosis de corticoides.</li></ul>'
+    },
+    // --- Diagnóstico Molecular e Inmunológico ---
+    {
+        id: 219,
+        category: 'procesos',
+        question: 'La técnica ELISPOT (Enzyme-Linked ImmunoSpot) se utiliza para:',
+        options: [
+            { text: 'Cuantificar la concentración de una citocina específica en el suero.', correct: false },
+            { text: 'Identificar el fenotipo de las células inmunes mediante marcadores de superficie.', correct: false },
+            { text: 'Enumerar la frecuencia de células individuales que secretan una citocina específica (ej. IFN-γ) en respuesta a un antígeno.', correct: true },
+            { text: 'Detectar la presencia de autoanticuerpos en una muestra de tejido.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Enumerar células secretoras de citocinas (Respuesta Correcta):</b> ELISPOT es una técnica altamente sensible similar a un ELISA "sandwich", pero en lugar de medir la citocina en solución, captura la citocina secretada por una sola célula. Las células se cultivan en una placa recubierta con un anticuerpo de captura. Cada célula que secreta la citocina de interés crea una "mancha" (spot) de color en la membrana. Al contar los spots, se puede determinar la frecuencia de células T (o B) que responden a un estímulo antigénico específico.</li><li class="mb-2"><b>Cuantificar en suero (Incorrecto):</b> Eso se hace con ELISA o citometría de perlas (multiplex).</li><li class="mb-2"><b>Identificar fenotipo (Incorrecto):</b> Eso se hace con citometría de flujo.</li><li class="mb-2"><b>Detectar en tejido (Incorrecto):</b> Eso se hace con inmunohistoquímica o inmunofluorescencia.</li></ul>'
+    },
+    {
+        id: 220,
+        category: 'procesos',
+        question: 'En el diagnóstico de la Enfermedad Mínima Residual (EMR) en leucemias, se utiliza la secuenciación de nueva generación (NGS) para analizar el repertorio de receptores de linfocitos. ¿Qué busca específicamente esta técnica?',
+        options: [
+            { text: 'Mutaciones en genes supresores de tumores como p53.', correct: false },
+            { text: 'La secuencia única de ADN del reordenamiento V(D)J del clon leucémico original.', correct: true },
+            { text: 'La expresión de marcadores de superficie como CD19 y CD20.', correct: false },
+            { text: 'La presencia de translocaciones cromosómicas como la t(9;22).', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Secuencia del reordenamiento V(D)J (Respuesta Correcta):</b> Cada linfocito T o B tiene una secuencia única en su región CDR3 debido al reordenamiento V(D)J. En una leucemia, todas las células malignas comparten la misma secuencia clonal. La NGS del repertorio de TCR o BCR permite identificar esta secuencia "huella digital" del clon tumoral al momento del diagnóstico. Después del tratamiento, se puede usar la misma técnica para buscar esa secuencia específica con una sensibilidad extremadamente alta (detectando 1 célula leucémica entre 1 millón de células normales), lo que permite una cuantificación precisa de la EMR.</li><li class="mb-2"><b>Mutaciones p53 (Incorrecto):</b> Se analizan por secuenciación de exoma o genoma, pero no es específico para EMR del repertorio.</li><li class="mb-2"><b>Expresión de marcadores (Incorrecto):</b> Se analiza por citometría de flujo.</li><li class="mb-2"><b>Translocaciones (Incorrecto):</b> Se detectan por citogenética (cariotipo) o FISH/PCR.</li></ul>'
+    },
+    // --- Inmunoterapia y Cáncer Avanzado ---
+    {
+        id: 221,
+        category: 'patologia',
+        question: 'Un paciente con cáncer de pulmón de células no pequeñas avanza a pesar del tratamiento con Pembrolizumab (anti-PD-1). Se considera que ha desarrollado resistencia adquirida. ¿Cuál de los siguientes es un mecanismo plausible de resistencia a la inmunoterapia?',
+        options: [
+            { text: 'Aumento de la expresión de MHC clase I en las células tumorales.', correct: false },
+            { text: 'Mutación con pérdida de función en el gen de la beta-2-microglobulina (B2M).', correct: true },
+            { text: 'Disminución del número de linfocitos T reguladores (Tregs) en el microambiente tumoral.', correct: false },
+            { text: 'Sobreexpresión del ligando coestimulador B7 (CD80/86) en el tumor.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Mutación en B2M (Respuesta Correcta):</b> La beta-2-microglobulina es un componente esencial y no polimórfico de todas las moléculas MHC de clase I. Una mutación que inactive el gen B2M impide el ensamblaje y la expresión de MHC-I en la superficie celular. Sin MHC-I, la célula tumoral se vuelve "invisible" para los linfocitos T CD8+, que son los principales efectores de la terapia anti-PD-1. Esta es una de las formas más directas y comunes por las que un tumor puede escapar de la presión selectiva de la inmunoterapia.</li><li class="mb-2"><b>Aumento de MHC-I (Incorrecto):</b> Aumentaría la visibilidad del tumor y la sensibilidad a la terapia.</li><li class="mb-2"><b>Disminución de Tregs (Incorrecto):</b> Reduciría la inmunosupresión y mejoraría la respuesta.</li><li class="mb-2"><b>Sobreexpresión de B7 (Incorrecto):</b> Proporcionaría coestimulación a los linfocitos T, mejorando la respuesta.</li></ul>'
+    },
+    {
+        id: 222,
+        category: 'procesos',
+        question: 'Además de las células CAR-T, se está investigando el uso de células CAR-NK. ¿Cuál es una ventaja teórica de las CAR-NK sobre las CAR-T?',
+        options: [
+            { text: 'Tienen una mayor capacidad de proliferación y persistencia a largo plazo.', correct: false },
+            { text: 'Pueden ser obtenidas de donantes sanos y usadas como un producto "listo para usar" (off-the-shelf) con menor riesgo de EICH.', correct: true },
+            { text: 'Inducen una memoria inmunológica más robusta.', correct: false },
+            { text: 'Son más eficaces para penetrar tumores sólidos.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Producto "off-the-shelf" (Respuesta Correcta):</b> Las células NK no expresan un TCR que pueda reconocer el MHC del huésped como extraño. Por lo tanto, las células NK de un donante sano (alogénicas) pueden ser infundidas en un paciente con un riesgo mucho menor de causar Enfermedad de Injerto contra Huésped (EICH) en comparación con los linfocitos T alogénicos. Esto abre la posibilidad de crear bancos de células CAR-NK universales, listas para ser usadas de inmediato, evitando la costosa y lenta fabricación autóloga de las CAR-T.</li><li class="mb-2"><b>Proliferación y memoria (Incorrectos):</b> Las células T tienen una capacidad superior de proliferación, persistencia y formación de memoria.</li><li class="mb-2"><b>Penetración de tumores (Incorrecto):</b> Ambas células enfrentan desafíos similares para penetrar tumores sólidos.</li></ul>'
+    },
+    // --- Preguntas Variadas (Básico a Avanzado) ---
+    {
+        id: 223,
+        category: 'celulas',
+        question: '¿Qué molécula de adhesión es crucial para la retención de los timocitos en el timo y su migración entre la corteza y la médula?',
+        options: [
+            { text: 'L-selectina (CD62L)', correct: false },
+            { text: 'Integrina α4β7', correct: false },
+            { text: 'Receptor de quimiocinas CCR7', correct: true },
+            { text: 'PECAM-1 (CD31)', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>CCR7 (Respuesta Correcta):</b> El receptor de quimiocinas CCR7 y sus ligandos (CCL19 y CCL21), expresados por las células estromales del timo, son fundamentales para la arquitectura y el tráfico de los timocitos. La expresión diferencial de CCR7 en las distintas etapas de maduración guía el movimiento de los timocitos desde la corteza (donde ocurre la selección positiva) hacia la médula (donde ocurre la selección negativa).</li><li class="mb-2"><b>L-selectina (Incorrecto):</b> Es importante para la entrada de los linfocitos vírgenes a los ganglios linfáticos desde la sangre.</li><li class="mb-2"><b>Integrina α4β7 (Incorrecto):</b> Es una integrina de "homing" intestinal.</li><li class="mb-2"><b>PECAM-1 (Incorrecto):</b> Está implicada en la transmigración a través del endotelio.</li></ul>'
+    },
+    {
+        id: 224,
+        category: 'procesos',
+        question: 'El fenómeno de "exclusión de alelos" en los linfocitos B asegura que:',
+        options: [
+            { text: 'Un linfocito B solo exprese un tipo de cadena ligera (kappa o lambda), pero no ambas.', correct: true },
+            { text: 'Un linfocito B solo exprese un isotipo de anticuerpo a la vez (ej. IgM o IgG).', correct: false },
+            { text: 'Solo se utilice un alelo del gen de la cadena pesada heredado del padre o de la madre.', correct: false },
+            { text: 'Los linfocitos B autorreactivos sean excluidos del repertorio en la médula ósea.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Expresión de una sola cadena ligera (Respuesta Correcta):</b> La exclusión de alelos es un proceso que garantiza que cada linfocito B exprese un único tipo de receptor de antígeno (BCR) con una única especificidad. Esto se logra a dos niveles: 1) La recombinación exitosa de un alelo del gen de la cadena pesada inhibe la recombinación en el otro alelo. 2) De manera similar, la recombinación exitosa de un locus de cadena ligera (primero kappa, luego lambda) inhibe la recombinación en los otros alelos. El resultado final es que cada linfocito B produce anticuerpos con una única cadena pesada y una única cadena ligera (kappa O lambda), asegurando la especificidad clonal.</li><li class="mb-2"><b>Un solo isotipo (Incorrecto):</b> Los linfocitos B vírgenes co-expresan IgM e IgD.</li><li class="mb-2"><b>Un solo alelo de cadena pesada (Incorrecto):</b> Esta es parte del proceso, pero la exclusión de la cadena ligera también es fundamental y es lo que describe la opción correcta de manera más completa.</li><li class="mb-2"><b>Exclusión de autorreactivos (Incorrecto):</b> Ese proceso se llama selección negativa o deleción clonal.</li></ul>'
+    },
+    {
+        id: 225,
+        category: 'patologia',
+        question: 'Un paciente de 60 años con antecedentes de tabaquismo presenta debilidad muscular proximal que, a diferencia de la miastenia gravis, MEJORA con el ejercicio repetido. Se diagnostica un síndrome paraneoplásico. ¿Cuál es el diagnóstico y el mecanismo patogénico?',
+        options: [
+            { text: 'Dermatomiositis; infiltración de LT CD4+ en el músculo.', correct: false },
+            { text: 'Síndrome de Lambert-Eaton; autoanticuerpos contra los canales de calcio presinápticos.', correct: true },
+            { text: 'Polimiositis; ataque directo de LT CD8+ a las fibras musculares.', correct: false },
+            { text: 'Esclerosis lateral amiotrófica; degeneración de motoneuronas.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Síndrome de Lambert-Eaton (Respuesta Correcta):</b> Este síndrome se asocia frecuentemente con el cáncer de pulmón de células pequeñas. Es causado por autoanticuerpos (hipersensibilidad tipo II) que se dirigen contra los canales de calcio dependientes de voltaje en la terminal nerviosa presináptica. Esto impide la liberación de acetilcolina. La estimulación repetida (ejercicio) permite que se acumule suficiente calcio intracelular para superar parcialmente el bloqueo, lo que explica la mejoría transitoria de la fuerza, un signo clínico clave que lo diferencia de la miastenia gravis.</li><li class="mb-2"><b>Las otras opciones describen diferentes enfermedades neuromusculares</b> con patogenias distintas.</li></ul>'
+    },
+    // --- Continuación de Preguntas ---
+    {
+        id: 226,
+        category: 'celulas',
+        question: '¿Cuál es la función principal de las células dendríticas foliculares (FDCs) en el centro germinal?',
+        options: [
+            { text: 'Procesar y presentar antígenos peptídicos en moléculas MHC-II a los linfocitos T.', correct: false },
+            { text: 'Capturar y retener antígenos en su forma nativa en la superficie celular para presentarlos a los linfocitos B.', correct: true },
+            { text: 'Fagocitar los linfocitos B apoptóticos que no son seleccionados positivamente.', correct: false },
+            { text: 'Secretar IL-21 para promover la diferenciación de los linfocitos B.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Capturar y retener antígenos nativos (Respuesta Correcta):</b> A diferencia de las células dendríticas convencionales, las FDCs no son de origen hematopoyético y no expresan MHC-II. Su función principal es atrapar complejos antígeno-anticuerpo o antígeno-complemento a través de sus receptores Fc y de complemento. Mantienen estos antígenos intactos en su superficie durante largos períodos, creando un "reservorio" que los linfocitos B del centro germinal (centrocitos) pueden interrogar con su BCR durante el proceso de selección y maduración de la afinidad.</li><li class="mb-2"><b>Presentar en MHC-II (Incorrecto):</b> Esa es la función de las células dendríticas convencionales y de los linfocitos B.</li><li class="mb-2"><b>Fagocitar (Incorrecto):</b> Los macrófagos de cuerpos tingibles son los responsables de esta limpieza.</li><li class="mb-2"><b>Secretar IL-21 (Incorrecto):</b> Esa es una función de los linfocitos T foliculares helper (Tfh).</li></ul>'
+    },
+    {
+        id: 227,
+        category: 'procesos',
+        question: 'La "desviación inmunológica" es un fenómeno donde la respuesta inmune se polariza hacia un tipo (ej. Th1 o Th2) a expensas del otro. ¿Qué citocina producida por las células Th1 es la principal responsable de inhibir el desarrollo de las células Th2?',
+        options: [
+            { text: 'IL-2', correct: false },
+            { text: 'TNF-α', correct: false },
+            { text: 'IFN-γ (Interferón gamma)', correct: true },
+            { text: 'IL-12', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>IFN-γ (Respuesta Correcta):</b> El IFN-γ, la citocina efectora clave de la respuesta Th1, no solo activa a los macrófagos, sino que también ejerce una retroalimentación negativa sobre la polarización Th2. Lo hace inhibiendo la expresión del factor de transcripción maestro de Th2, GATA-3, y promoviendo la expresión de T-bet, el factor maestro de Th1. De manera recíproca, la IL-4 (de la vía Th2) inhibe la diferenciación Th1. Este antagonismo asegura que se monte una respuesta inmune apropiada y no contradictoria.</li><li class="mb-2"><b>IL-2 y TNF-α (Incorrectos):</b> Son importantes en la respuesta Th1 pero no son los principales inhibidores de la vía Th2.</li><li class="mb-2"><b>IL-12 (Incorrecto):</b> Es el principal inductor de la diferenciación Th1, pero no el principal efector inhibidor de Th2.</li></ul>'
+    },
+    {
+        id: 228,
+        category: 'patologia',
+        question: 'Un paciente recibe un trasplante renal de un donante no relacionado. Años después, presenta un deterioro lento y progresivo de la función del injerto con fibrosis intersticial y engrosamiento de las paredes de los vasos sanguíneos del riñón. Este cuadro es compatible con:',
+        options: [
+            { text: 'Rechazo hiperagudo', correct: false },
+            { text: 'Rechazo agudo mediado por células T', correct: false },
+            { text: 'Rechazo crónico', correct: true },
+            { text: 'Nefrotoxicidad por inhibidores de la calcineurina', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Rechazo crónico (Respuesta Correcta):</b> El rechazo crónico es la principal causa de pérdida del injerto a largo plazo. Es un proceso lento e insidioso que ocurre a lo largo de meses o años. Se caracteriza por una vasculopatía del injerto (proliferación de la íntima de los vasos) y fibrosis del parénquima. Se cree que es mediado tanto por mecanismos celulares (linfocitos T) como humorales (anticuerpos anti-HLA de bajo título), que causan un daño endotelial crónico y una respuesta de reparación aberrante que lleva a la fibrosis y pérdida de función.</li><li class="mb-2"><b>Rechazo hiperagudo (Incorrecto):</b> Ocurre en minutos u horas debido a anticuerpos preexistentes.</li><li class="mb-2"><b>Rechazo agudo (Incorrecto):</b> Ocurre en días o semanas y se caracteriza por una infiltración celular masiva (linfocitos T) o un daño mediado por anticuerpos agudo.</li><li class="mb-2"><b>Nefrotoxicidad (Incorrecto):</b> Aunque es una causa importante de disfunción renal en trasplantados, el patrón histológico de vasculopatía y fibrosis es más característico del rechazo crónico.</li></ul>'
+    },
+    {
+        id: 229,
+        category: 'procesos',
+        question: '¿Cuál es el mecanismo de acción del Abatacept, un fármaco utilizado en el tratamiento de la artritis reumatoide?',
+        options: [
+            { text: 'Es un anticuerpo monoclonal que bloquea el TNF-α.', correct: false },
+            { text: 'Es una proteína de fusión que consiste en el dominio extracelular de CTLA-4 y la porción Fc de IgG1, bloqueando la coestimulación.', correct: true },
+            { text: 'Es un inhibidor de la quinasa JAK, bloqueando la señalización de múltiples citocinas.', correct: false },
+            { text: 'Es un anticuerpo monoclonal que depleta los linfocitos B al unirse a CD20.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Proteína de fusión CTLA-4-Ig (Respuesta Correcta):</b> El Abatacept (y su versión subcutánea, Belatacept) es una molécula de ingeniería diseñada para bloquear la señal coestimuladora necesaria para la activación de los linfocitos T. CTLA-4 tiene una afinidad mucho mayor por los ligandos B7 (CD80/CD86) que CD28. Al inundar el sistema con esta proteína de fusión, el Abatacept se une a B7 en las células presentadoras de antígeno, impidiendo que CD28 en el linfocito T reciba la señal 2. Esto induce anergia o falta de activación de los linfocitos T autorreactivos.</li><li class="mb-2"><b>Anti-TNF-α (Incorrecto):</b> Describe fármacos como Infliximab o Adalimumab.</li><li class="mb-2"><b>Inhibidor de JAK (Incorrecto):</b> Describe fármacos como Tofacitinib o Baricitinib.</li><li class="mb-2"><b>Anti-CD20 (Incorrecto):</b> Describe el Rituximab.</li></ul>'
+    },
+    {
+        id: 230,
+        category: 'inmunoterapia',
+        question: 'Las vacunas de vectores virales (como la de AstraZeneca para COVID-19) utilizan un adenovirus modificado. ¿Por qué se utiliza un adenovirus de chimpancé en lugar de uno humano?',
+        options: [
+            { text: 'Los adenovirus de chimpancé son más fáciles de producir en el laboratorio.', correct: false },
+            { text: 'Para minimizar la probabilidad de que el receptor tenga inmunidad preexistente (anticuerpos neutralizantes) contra el vector, lo que reduciría la eficacia de la vacuna.', correct: true },
+            { text: 'Los adenovirus de chimpancé tienen una capacidad intrínseca para inducir una respuesta Th17 más fuerte.', correct: false },
+            { text: 'Los adenovirus humanos no pueden ser modificados para que no se repliquen.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Evitar inmunidad preexistente (Respuesta Correcta):</b> Muchas personas han estado expuestas a adenovirus humanos comunes a lo largo de su vida y, por lo tanto, tienen anticuerpos y células T de memoria contra ellos. Si se utilizara un vector de adenovirus humano, esta inmunidad preexistente podría neutralizar el vector vacunal antes de que pueda infectar las células y expresar el antígeno de interés (ej. la proteína Spike), disminuyendo drásticamente la eficacia de la vacuna. Al utilizar un adenovirus de una especie diferente, como el chimpancé, se reduce la probabilidad de que la población humana tenga inmunidad previa contra el vector.</li><li class="mb-2"><b>Las otras opciones son incorrectas.</b> La producción, la respuesta inmune específica y la capacidad de modificación no son las razones principales para elegir un vector no humano.</li></ul>'
+    },{
+        id: 231,
+        category: 'patologia',
+        question: 'Un niño de 4 años presenta múltiples abscesos cutáneos por *Staphylococcus aureus* y una neumonía por *Aspergillus*. El test de Dihidrorodamina (DHR) por citometría de flujo muestra una nula producción de ROS en sus neutrófilos. ¿A qué se debe su susceptibilidad a estos patógenos específicos?',
+        options: [
+            { text: 'A una deficiencia de anticuerpos opsonizantes.', correct: false },
+            { text: 'A la incapacidad de sus fagocitos para destruir microorganismos catalasa-positivos.', correct: true },
+            { text: 'A una linfopenia T severa que impide la activación de macrófagos.', correct: false },
+            { text: 'A un defecto en la formación de trampas extracelulares de neutrófilos (NETs).', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Incapacidad para destruir catalasa-positivos (Respuesta Correcta):</b> El cuadro clínico y el test de DHR son diagnósticos de Enfermedad Granulomatosa Crónica (EGC), un defecto en la NADPH oxidasa. Los fagocitos de estos pacientes no pueden generar el estallido respiratorio (ROS). Los microorganismos catalasa-positivos (como *S. aureus*, *Aspergillus*, *Serratia*) pueden degradar el peróxido de hidrógeno que ellos mismos producen, sobreviviendo dentro del fagocito. Los microorganismos catalasa-negativos son eliminados porque el peróxido de hidrógeno que producen no puede ser neutralizado por el fagocito defectuoso.</li><li class="mb-2"><b>Deficiencia de anticuerpos (Incorrecto):</b> Causaría infecciones por encapsulados, pero no explica el defecto funcional del fagocito.</li><li class="mb-2"><b>Linfopenia T (Incorrecto):</b> Causaría infecciones por oportunistas más variados (virus, hongos, protozoos) y no se diagnostica con el test de DHR.</li><li class="mb-2"><b>Defecto en NETs (Incorrecto):</b> Aunque la NETosis puede estar afectada, el defecto primario y la razón de la susceptibilidad a estos patógenos es la falla en la muerte intracelular por ROS.</li></ul>'
+    },
+    {
+        id: 232,
+        category: 'procesos',
+        question: 'La recombinación V(D)J está guiada por secuencias de señal de recombinación (RSS) que flanquean cada segmento génico. La "regla 12/23" establece que:',
+        options: [
+            { text: 'Solo se pueden unir segmentos génicos que estén a una distancia de 12 o 23 kilobases.', correct: false },
+            { text: 'La recombinación solo puede ocurrir entre un segmento flanqueado por una RSS con un espaciador de 12 pb y otro flanqueado por una RSS con un espaciador de 23 pb.', correct: true },
+            { text: 'Se deben eliminar 12 o 23 nucleótidos en la unión para generar diversidad.', correct: false },
+            { text: 'El complejo RAG permanece unido al ADN durante 12 o 23 minutos para asegurar la precisión.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Unión entre espaciadores 12 y 23 (Respuesta Correcta):</b> La regla 12/23 es un principio fundamental que asegura el orden correcto de la unión de los segmentos génicos. Cada RSS tiene un heptámero y un nonámero conservados, separados por un espaciador de 12 o 23 pares de bases (pb). El complejo enzimático RAG solo puede unir eficientemente una RSS con un espaciador de 12 pb a otra con un espaciador de 23 pb. Esto previene, por ejemplo, que dos segmentos V se unan directamente, asegurando que se siga la secuencia correcta V-D-J.</li><li class="mb-2"><b>Las otras opciones son interpretaciones incorrectas</b> del significado de "12" y "23" en este contexto.</li></ul>'
+    },
+    {
+        id: 233,
+        category: 'inmunoterapia',
+        question: 'Trastuzumab emtansina (T-DM1) es un anticuerpo conjugado (ADC) usado en cáncer de mama HER2+. ¿Cuál es su mecanismo de acción combinado?',
+        options: [
+            { text: 'Bloquea la señalización de HER2 y redirige a las células NK para realizar ADCC.', correct: false },
+            { text: 'Se une a HER2, es internalizado, y libera un agente quimioterapéutico (emtansina) directamente dentro de la célula tumoral.', correct: true },
+            { text: 'Depleta todas las células que expresan HER2, incluyendo células sanas.', correct: false },
+            { text: 'Activa el complemento sobre la célula tumoral y bloquea la angiogénesis.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Internalización y liberación de quimioterapia (Respuesta Correcta):</b> T-DM1 es un ejemplo sofisticado de terapia dirigida. El anticuerpo Trastuzumab actúa como un "misil teledirigido" que se une específicamente a la proteína HER2, sobreexpresada en ciertos cánceres de mama. Tras la unión, el complejo es internalizado por la célula tumoral. Dentro de la célula, en el ambiente del lisosoma, el enlace químico que une el anticuerpo al fármaco se rompe, liberando la emtansina, un potente agente quimioterapéutico que destruye la célula desde adentro. Esto maximiza la toxicidad en el tumor y minimiza los efectos secundarios sistémicos.</li><li class="mb-2"><b>ADCC (Incorrecto):</b> Aunque Trastuzumab solo puede mediar ADCC, la función principal de T-DM1 es la entrega del fármaco.</li><li class="mb-2"><b>Depleción (Incorrecto):</b> No es un mecanismo de depleción general.</li><li class="mb-2"><b>Complemento y angiogénesis (Incorrecto):</b> No son los mecanismos primarios de este ADC.</li></ul>'
+    },
+    {
+        id: 234,
+        category: 'procesos',
+        question: 'Para diagnosticar la Hemoglobinuria Paroxística Nocturna (HPN), la citometría de flujo es la técnica de elección. ¿Qué se busca específicamente en las poblaciones de eritrocitos y granulocitos?',
+        options: [
+            { text: 'La sobreexpresión de la molécula CD59.', correct: false },
+            { text: 'La presencia de un clon de células que carecen de proteínas ancladas por GPI, como CD55 y CD59.', correct: true },
+            { text: 'La unión de anticuerpos IgG a la superficie celular.', correct: false },
+            { text: 'Un aumento en el tamaño y la granularidad de las células.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Ausencia de proteínas ancladas por GPI (Respuesta Correcta):</b> La HPN es causada por una mutación somática en el gen PIGA, necesario para la síntesis del ancla de glicosilfosfatidilinositol (GPI). Las proteínas que dependen de esta ancla para fijarse a la membrana, como CD55 (DAF) y CD59 (Protectina), estarán ausentes en las células del clon afectado. La citometría de flujo puede detectar con alta sensibilidad la presencia de esta población de células (ej. granulocitos FLAER-/CD24- o eritrocitos CD59-) que carecen de estas proteínas, confirmando el diagnóstico.</li><li class="mb-2"><b>Sobreesxpresión de CD59 (Incorrecto):</b> Es la ausencia, no la sobreexpresión, lo que se busca.</li><li class="mb-2"><b>Unión de IgG (Incorrecto):</b> Eso se buscaría en una anemia hemolítica autoinmune.</li><li class="mb-2"><b>Tamaño y granularidad (Incorrecto):</b> No son los parámetros diagnósticos para HPN.</li></ul>'
+    },
+    {
+        id: 235,
+        category: 'celulas',
+        question: 'Las células T asociadas a mucosas (MAIT) son una población de linfocitos T no convencionales. ¿Qué tipo de antígeno reconocen y a través de qué molécula presentadora?',
+        options: [
+            { text: 'Lípidos presentados por CD1d.', correct: false },
+            { text: 'Péptidos fosforilados presentados por HLA-E.', correct: false },
+            { text: 'Metabolitos derivados de la síntesis de riboflavina (Vitamina B2) presentados por MR1.', correct: true },
+            { text: 'Autoantígenos presentados por MHC clase II.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Metabolitos de riboflavina en MR1 (Respuesta Correcta):</b> Las células MAIT son únicas porque su TCR semi-invariante no reconoce péptidos ni lípidos, sino moléculas orgánicas pequeñas derivadas del metabolismo microbiano. Específicamente, reconocen intermediarios de la vía de síntesis de la riboflavina, que es producida por muchas bacterias y levaduras pero no por humanos. Estos metabolitos son presentados por la molécula no clásica MR1, que es monomórfica. Esto permite a las células MAIT actuar como sensores rápidos de la presencia bacteriana en las mucosas.</li><li class="mb-2"><b>Lípidos en CD1d (Incorrecto):</b> Son reconocidos por las células NKT.</li><li class="mb-2"><b>Péptidos en HLA-E (Incorrecto):</b> HLA-E presenta péptidos líder de otras moléculas HLA a las células NK.</li><li class="mb-2"><b>Autoantígenos en MHC-II (Incorrecto):</b> Son reconocidos por linfocitos T CD4+ convencionales.</li></ul>'
+    },
+    {
+        id: 236,
+        category: 'patologia',
+        question: 'Una mujer de 50 años se queja de sequedad ocular y bucal intensa (queratoconjuntivitis sicca y xerostomía). La biopsia de glándula salival muestra un denso infiltrado linfocitario. ¿Qué autoanticuerpos son altamente característicos de esta condición?',
+        options: [
+            { text: 'Anti-dsDNA y anti-Sm', correct: false },
+            { text: 'Anti-CCP y Factor Reumatoide', correct: false },
+            { text: 'Anti-Ro (SSA) y anti-La (SSB)', correct: true },
+            { text: 'Anti-Scl-70 y anti-centrómero', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Anti-Ro (SSA) y anti-La (SSB) (Respuesta Correcta):</b> Este cuadro clínico es clásico del Síndrome de Sjögren, una enfermedad autoinmune sistémica que afecta principalmente a las glándulas exocrinas. Los autoanticuerpos más característicos y parte de los criterios de clasificación son los dirigidos contra las ribonucleoproteínas Ro (SSA) y La (SSB). La presencia de anti-Ro se asocia también con un riesgo aumentado de lupus neonatal en hijos de madres con estos anticuerpos.</li><li class="mb-2"><b>Anti-dsDNA y anti-Sm (Incorrecto):</b> Son muy específicos del Lupus Eritematoso Sistémico.</li><li class="mb-2"><b>Anti-CCP y FR (Incorrecto):</b> Son característicos de la Artritis Reumatoide.</li><li class="mb-2"><b>Anti-Scl-70 y anti-centrómero (Incorrecto):</b> Son marcadores de la Esclerosis Sistémica.</li></ul>'
+    },
+    {
+        id: 237,
+        category: 'inmunoterapia',
+        question: 'Una de las toxicidades más preocupantes de la terapia con células CAR-T es el Síndrome de Neurotoxicidad Asociado a Células Inmunoefectoras (ICANS). ¿Cuál se cree que es uno de los mecanismos subyacentes?',
+        options: [
+            { text: 'La migración directa de las células CAR-T al cerebro y su ataque a las neuronas.', correct: false },
+            { text: 'La liberación masiva de citocinas pro-inflamatorias (como IL-6 e IL-1) que alteran la barrera hematoencefálica y causan disfunción endotelial.', correct: true },
+            { text: 'La producción de autoanticuerpos contra receptores neuronales.', correct: false },
+            { text: 'El desarrollo de un linfoma secundario en el sistema nervioso central.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Liberación de citocinas y disfunción endotelial (Respuesta Correcta):</b> Aunque el mecanismo exacto de ICANS no está completamente dilucidado, la hipótesis principal es que no se debe a un ataque directo de las CAR-T a las neuronas. En cambio, está estrechamente relacionado con el Síndrome de Liberación de Citoquinas (SLC). Las altas concentraciones de citocinas como IL-6 e IL-1, liberadas por las CAR-T y los macrófagos activados, causan una activación y disfunción generalizada de las células endoteliales, incluyendo las de la barrera hematoencefálica. Esto aumenta la permeabilidad de la barrera, permitiendo la entrada de citocinas y otros factores tóxicos al SNC, lo que resulta en edema cerebral y los síntomas neurológicos.</li><li class="mb-2"><b>Ataque directo (Incorrecto):</b> No es el mecanismo principal aceptado.</li><li class="mb-2"><b>Autoanticuerpos y linfoma (Incorrectos):</b> No son los mecanismos de la toxicidad aguda de ICANS.</li></ul>'
+    },
+    {
+        id: 238,
+        category: 'procesos',
+        question: 'El fenómeno de "propagación de epítopos" (epitope spreading) en enfermedades autoinmunes crónicas como el LES se refiere a:',
+        options: [
+            { text: 'La tendencia de un anticuerpo a ganar reactividad cruzada con múltiples epítopos.', correct: false },
+            { text: 'La diversificación de la respuesta inmune, que inicialmente se dirige a un solo autoepítopo y con el tiempo se expande para reconocer otros epítopos en la misma molécula o en moléculas cercanas.', correct: true },
+            { text: 'La presentación del mismo péptido por diferentes alelos de HLA.', correct: false },
+            { text: 'La migración de linfocitos autorreactivos desde un tejido a otro.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Diversificación de la respuesta (Respuesta Correcta):</b> La propagación de epítopos es un proceso clave en la cronificación de la autoinmunidad. Comienza con una respuesta inmune contra un epítopo dominante de una auto-proteína. El daño tisular resultante libera otras proteínas o fragmentos de la misma proteína que normalmente estaban ocultos. El sistema inmune entonces monta una nueva respuesta contra estos epítopos secundarios. Este ciclo de daño y exposición de nuevos autoantígenos lleva a una respuesta autoinmune cada vez más amplia y compleja, contribuyendo a la naturaleza progresiva de la enfermedad.</li><li class="mb-2"><b>Reactividad cruzada (Incorrecto):</b> Es un concepto relacionado pero diferente, donde un solo clon de linfocito reconoce dos epítopos distintos.</li><li class="mb-2"><b>Presentación por diferentes HLA (Incorrecto):</b> No describe la propagación de epítopos.</li><li class="mb-2"><b>Migración de linfocitos (Incorrecto):</b> Es parte de la respuesta, pero no la definición del fenómeno.</li></ul>'
+    },
+    {
+        id: 239,
+        category: 'procesos',
+        question: 'El tamizaje neonatal para Inmunodeficiencia Combinada Severa (IDCS) se realiza midiendo los TRECs (T-cell Receptor Excision Circles) en una muestra de sangre seca. ¿Qué indica un nivel bajo o ausente de TRECs?',
+        options: [
+            { text: 'Un defecto en la función de los neutrófilos.', correct: false },
+            { text: 'Una falla en la producción de linfocitos T en el timo.', correct: true },
+            { text: 'Una incapacidad de los linfocitos B para producir anticuerpos.', correct: false },
+            { text: 'Una deficiencia en la vía clásica del complemento.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Falla en la producción de linfocitos T (Respuesta Correcta):</b> Los TRECs son pequeños círculos de ADN extracromosómico que se generan en el timo durante el proceso de recombinación del gen del receptor de células T (TCR). Cada vez que un timocito reordena su TCR, se escinde un fragmento de ADN circular (un TREC). Estos TRECs no se replican, por lo que su cantidad en la sangre periférica es un reflejo directo del número de linfocitos T nuevos que han emigrado recientemente del timo. En la IDCS, hay un bloqueo severo en el desarrollo de los linfocitos T, por lo que no se producen TRECs, haciendo de su medición un biomarcador excelente y temprano para esta grave condición.</li><li class="mb-2"><b>Las otras opciones describen otros tipos de inmunodeficiencias</b> que no afectan directamente la producción de TRECs.</li></ul>'
+    },
+    {
+        id: 240,
+        category: 'patologia',
+        question: 'En la Enfermedad Celíaca, la enzima transglutaminasa tisular (tTG) juega un doble papel patogénico. ¿Cuáles son estos dos roles?',
+        options: [
+            { text: 'Actúa como un superantígeno y degrada la barrera intestinal.', correct: false },
+            { text: 'Deamina los péptidos de gliadina, aumentando su inmunogenicidad, y también es ella misma un autoantígeno principal.', correct: true },
+            { text: 'Induce la producción de IgE y activa a los mastocitos.', correct: false },
+            { text: 'Bloquea la absorción de nutrientes y promueve la inflamación neutrofílica.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Deamina la gliadina y es un autoantígeno (Respuesta Correcta):</b> La tTG tiene un rol dual y central. Primero, modifica los péptidos de gliadina (del gluten) mediante deaminación, lo que permite que se unan con alta afinidad a las moléculas HLA-DQ2/DQ8 y sean presentados a los linfocitos T. Segundo, en el contexto de la inflamación, la propia tTG se convierte en un blanco de la respuesta inmune, generándose autoanticuerpos anti-tTG (de clase IgA), que son el marcador serológico más importante y específico para el diagnóstico de la enfermedad celíaca.</li><li class="mb-2"><b>Las otras opciones describen mecanismos incorrectos</b> o no relacionados con la función de la tTG en esta patología.</li></ul>'
+    },
+    {
+        id: 241,
+        category: 'inmunoterapia',
+        question: '¿Cuál es la lógica inmunológica detrás de la terapia combinada de un inhibidor de CTLA-4 (como Ipilimumab) y un inhibidor de PD-1 (como Nivolumab) en el tratamiento del cáncer?',
+        options: [
+            { text: 'Ambos fármacos se dirigen a la misma vía de señalización, logrando un bloqueo más completo.', correct: false },
+            { text: 'El anti-CTLA-4 actúa en la fase de imprimación en los ganglios linfáticos para aumentar la generación y diversidad de linfocitos T antitumorales, mientras que el anti-PD-1 actúa en el microambiente tumoral para reactivar a esos linfocitos T ya existentes.', correct: true },
+            { text: 'El anti-PD-1 activa a las células NK y el anti-CTLA-4 activa a los macrófagos.', correct: false },
+            { text: 'La combinación reduce los efectos adversos inmunomediados en comparación con la monoterapia.', correct: false }
+        ],
+        isMultipleChoice: false,
+        explanation: '<ul><li class="mb-2"><b>Actuación en diferentes fases y lugares (Respuesta Correcta):</b> CTLA-4 y PD-1 son dos puntos de control inmunitario no redundantes que actúan en diferentes momentos y localizaciones. CTLA-4 actúa tempranamente, durante la activación de los linfocitos T vírgenes en los ganglios linfáticos, regulando la amplitud de la respuesta inicial. El bloqueo de CTLA-4 "expande el ejército" de células T. Por otro lado, PD-1 actúa más tarde, en los tejidos periféricos y en el microambiente tumoral, donde es expresado por linfocitos T efectores agotados. El bloqueo de PD-1 "reactiva a los soldados en el campo de batalla". La combinación de ambos fármacos ataca el cáncer desde dos frentes, lo que ha demostrado tener un efecto sinérgico y tasas de respuesta más altas en ciertos tumores como el melanoma.</li><li class="mb-2"><b>Misma vía (Incorrecto):</b> Son vías distintas.</li><li class="mb-2"><b>Activación de NK/macrófagos (Incorrecto):</b> Su acción principal es sobre los linfocitos T.</li><li class="mb-2"><b>Reducción de efectos adversos (Incorrecto):</b> La combinación, de hecho, aumenta significativamente la frecuencia y la gravedad de los efectos adversos inmunomediados.</li></ul>'
     }
                     
                 
@@ -2330,6 +2666,10 @@
             const nextBtn = document.getElementById('next-btn');
             const prevBtn = document.getElementById('prev-btn');
             const categoryFilters = document.getElementById('category-filters');
+            // --- NUEVO: Elementos para el salto de pregunta ---
+            const questionJumper = document.getElementById('question-jumper');
+            const totalQuestionsSpan = document.getElementById('total-questions-span');
+            const jumpBtn = document.getElementById('jump-btn');
 
             function updateGamificationUI() {
                 scoreEl.textContent = score;
@@ -2338,28 +2678,18 @@
 
             function renderQuestion(index) {
                 answered = false;
-                userSelections = {};
                 const question = filteredQuestions[index];
                 
-                if (!question) {
-                    questionTextEl.textContent = "No hay preguntas en esta categoría.";
-                    optionsContainerEl.innerHTML = '';
-                    explanationContainerEl.classList.remove('visible');
-                    progressEl.textContent = `Pregunta 0 de 0`;
-                    prevBtn.disabled = true;
-                    nextBtn.disabled = true;
-                    return;
-                }
+                if (!question) return;
 
                 questionTextEl.textContent = question.question;
                 optionsContainerEl.innerHTML = '';
                 
-                question.options.forEach((option, optIndex) => {
+                question.options.forEach((option) => {
                     const button = document.createElement('button');
                     button.innerHTML = option.text;
                     button.classList.add('option-card', 'w-full', 'p-4', 'text-left', 'bg-white', 'rounded-xl', 'border-2', 'border-slate-200', 'hover:border-amber-400', 'focus:outline-none', 'focus:ring-2', 'focus:ring-amber-400', 'focus:ring-offset-2', 'transition', 'text-slate-700');
                     button.dataset.correct = option.correct;
-                    button.dataset.index = optIndex;
                     optionsContainerEl.appendChild(button);
                     button.addEventListener('click', () => selectAnswer(button, question));
                 });
@@ -2367,19 +2697,20 @@
                 explanationContainerEl.classList.remove('visible');
                 explanationTextEl.innerHTML = question.explanation;
 
-                progressEl.textContent = `Pregunta ${index + 1} de ${filteredQuestions.length}`;
+                // --- MODIFICADO: Actualiza el nuevo contador ---
+                questionJumper.value = index + 1;
+                totalQuestionsSpan.textContent = `de ${filteredQuestions.length}`;
+
                 prevBtn.disabled = index === 0;
-                nextBtn.disabled = index === filteredQuestions.length - 1;
+                nextBtn.disabled = true; // Se habilita al responder
             }
 
             function selectAnswer(selectedButton, question) {
                 if (answered) return;
                 answered = true;
-
-                const buttons = optionsContainerEl.querySelectorAll('.option-card');
+                
                 const isCorrectClick = selectedButton.dataset.correct === 'true';
 
-                // Lógica de puntuación y racha
                 if (isCorrectClick) {
                     score += 10;
                     streak++;
@@ -2388,7 +2719,7 @@
                 }
                 updateGamificationUI();
 
-                // Lógica visual para mostrar respuestas
+                const buttons = optionsContainerEl.querySelectorAll('.option-card');
                 buttons.forEach(button => {
                     button.disabled = true;
                     if (button.dataset.correct === 'true') {
@@ -2399,11 +2730,10 @@
                     }
                 });
 
-                // Muestra la explicación
                 explanationContainerEl.classList.add('visible');
+                nextBtn.disabled = currentQuestionIndex === filteredQuestions.length - 1;
             }
 
-            
             function showNext() {
                 if (currentQuestionIndex < filteredQuestions.length - 1) {
                     currentQuestionIndex++;
@@ -2418,17 +2748,32 @@
                 }
             }
 
+            // --- NUEVO: Función para saltar a una pregunta ---
+            function handleJump() {
+                const targetQuestionNumber = parseInt(questionJumper.value, 10);
+                const targetIndex = targetQuestionNumber - 1;
+
+                if (!isNaN(targetIndex) && targetIndex >= 0 && targetIndex < filteredQuestions.length) {
+                    currentQuestionIndex = targetIndex;
+                    renderQuestion(currentQuestionIndex);
+                } else {
+                    // Si el número es inválido, vuelve a mostrar el número actual
+                    questionJumper.value = currentQuestionIndex + 1;
+                    // Opcional: mostrar un pequeño aviso de error
+                }
+            }
+
             function filterQuestions(category) {
-                        // ===== INICIO: REINICIO DE GAMIFICACIÓN =====
                 score = 0;
                 streak = 0;
                 updateGamificationUI();
-                // ===== FIN: REINICIO DE GAMIFICACIÓN =====
+                
                 if (category === 'all') {
                     filteredQuestions = [...questions];
                 } else {
                     filteredQuestions = questions.filter(q => q.category === category);
                 }
+                
                 currentQuestionIndex = 0;
                 renderQuestion(currentQuestionIndex);
 
@@ -2436,6 +2781,7 @@
                 document.querySelector(`.btn-filter[data-category="${category}"]`).classList.add('active');
             }
 
+            // --- Event Listeners ---
             nextBtn.addEventListener('click', showNext);
             prevBtn.addEventListener('click', showPrev);
             categoryFilters.addEventListener('click', (e) => {
@@ -2444,7 +2790,17 @@
                 }
             });
 
-            renderQuestion(currentQuestionIndex);
+            // --- NUEVO: Event Listeners para el salto de pregunta ---
+            jumpBtn.addEventListener('click', handleJump);
+            questionJumper.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    handleJump();
+                    e.target.blur(); // Quita el foco del input
+                }
+            });
+
+            // Carga inicial
+            filterQuestions('all');
         });
     </script>
 </body>
