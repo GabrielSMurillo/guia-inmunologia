@@ -1,0 +1,557 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Guía de Estudio Avanzada de Inmunología</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', sans-serif;
+            background-color: #f8fafc; /* Slate 50 */
+        }
+        .option-card {
+            transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+        }
+        .option-card:hover:not(:disabled) {
+            transform: translateY(-4px);
+            box-shadow: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+        }
+        .explanation-section {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.5s ease-out, opacity 0.5s ease-out;
+            opacity: 0;
+        }
+        .explanation-section.visible {
+            max-height: 2000px; /* Increased max-height for longer explanations */
+            opacity: 1;
+        }
+        .btn-filter.active {
+            background-color: #fbbf24; /* Amber 400 */
+            color: #422006; /* Dark Amber text */
+            font-weight: 600;
+        }
+        .correct-answer {
+            background-color: #dcfce7 !important; /* Green 100 */
+            border-color: #22c55e !important; /* Green 500 */
+        }
+        .incorrect-answer {
+            background-color: #fee2e2 !important; /* Red 100 */
+            border-color: #ef4444 !important; /* Red 500 */
+        }
+        .selected-incorrect {
+            opacity: 0.7;
+        }
+        .spinner {
+            border: 4px solid rgba(0, 0, 0, 0.1);
+            border-left-color: #f97316; /* Orange 500 */
+            border-radius: 50%;
+            width: 24px;
+            height: 24px;
+            animation: spin 1s linear infinite;
+            display: inline-block;
+            vertical-align: middle;
+            margin-right: 8px;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="text-slate-800">
+
+    <div class="container mx-auto p-4 md:p-8 max-w-4xl">
+        <header class="text-center mb-8">
+            <h1 class="text-3xl md:text-4xl font-bold text-slate-900">Guía de Estudio Avanzada de Inmunología</h1>
+            <p class="mt-2 text-slate-600">Pon a prueba tus conocimientos de forma interactiva.</p>
+        </header>
+
+        <nav id="category-filters" class="flex flex-wrap justify-center gap-2 mb-8">
+            <button data-category="all" class="btn-filter active py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Todos los Temas</button>
+            <button data-category="celulas" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Células y Moléculas</button>
+            <button data-category="procesos" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Procesos Inmunes</button>
+            <button data-category="patologia" class="btn-filter py-2 px-4 bg-white rounded-full shadow-sm text-sm font-medium text-slate-700 hover:bg-slate-100 transition">Patología y Diagnóstico</button>
+        </nav>
+        
+        <main id="quiz-container" class="bg-white p-6 md:p-8 rounded-2xl shadow-lg">
+            <div id="progress" class="text-center text-sm font-semibold text-amber-600 mb-4"></div>
+            
+            <h2 id="question-text" class="text-xl md:text-2xl font-semibold mb-6 text-slate-900 text-center"></h2>
+
+            <div id="options-container" class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            </div>
+
+            <div id="explanation-container" class="explanation-section mt-6">
+                <h3 class="font-bold text-lg text-slate-800 border-b-2 border-amber-300 pb-2 mb-3">Explicación Detallada</h3>
+                <div id="explanation-text" class="text-slate-700 space-y-2"></div>
+                
+                <div class="mt-4 text-center">
+                    <button id="explain-more-btn" class="py-2 px-5 bg-orange-500 text-white font-semibold rounded-lg hover:bg-orange-600 transition disabled:opacity-50 disabled:cursor-not-allowed">
+                        <span id="explain-more-spinner" class="spinner hidden"></span>
+                        ✨ Explicar más
+                    </button>
+                </div>
+                <div id="ai-explanation-container" class="mt-4 p-4 bg-amber-50 rounded-lg border border-amber-200 hidden">
+                    <h4 class="font-semibold text-amber-800 mb-2">Explicación Adicional (IA)</h4>
+                    <div id="ai-explanation-text" class="text-amber-700"></div>
+                </div>
+            </div>
+
+            <div id="navigation-container" class="flex justify-between mt-8 pt-6 border-t border-slate-200">
+                <button id="prev-btn" class="py-2 px-5 bg-slate-200 text-slate-700 font-semibold rounded-lg hover:bg-slate-300 transition disabled:opacity-50 disabled:cursor-not-allowed">Anterior</button>
+                <button id="next-btn" class="py-2 px-5 bg-amber-400 text-amber-900 font-semibold rounded-lg hover:bg-amber-500 transition">Siguiente</button>
+            </div>
+        </main>
+
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', () => {
+            // --- BANCO DE PREGUNTAS EXTENDIDO ---
+            const questions = [
+                // PREGUNTAS ORIGINALES (IDs 1-48)
+                { id: 1, category: 'patologia', question: '¿Qué medicamentos biológicos utilizaría para el control de las enfermedades inflamatorias crónicas autoinmunes?', options: [ { text: 'Anti CD80', correct: true }, { text: 'Anti TNF', correct: true }, { text: 'Anti CTLA4', correct: true }, { text: 'Anti PD1', correct: false } ], isMultipleChoice: true, explanation: '<ul><li class="mb-2"><b>Anti CD80, Anti TNF y Anti CTLA4 (Correctas):</b> Estos medicamentos biológicos interfieren con la activación de los linfocitos T (Anti-CD80, Anti-CTLA4) o bloquean citocinas pro-inflamatorias clave como el TNF-alfa. Son la base del tratamiento para muchas enfermedades autoinmunes.</li><li class="mb-2"><b>Anti PD1 (Incorrecto):</b> Bloquear PD-1 es una estrategia en inmunoterapia contra el cáncer para *activar* la respuesta inmune contra tumores. En autoinmunidad, podría exacerbar la enfermedad.</li></ul>' },
+                { id: 2, category: 'patologia', question: 'Los fármacos que tienen como blanco la IgE, la IL-4 y la IL-13 son:', options: [ { text: 'Dupilumab', correct: true }, { text: 'Rituximab', correct: false }, { text: 'Omalizumab', correct: true } ], isMultipleChoice: true, explanation: '<ul><li class="mb-2"><b>Dupilumab y Omalizumab (Correctas):</b> Omalizumab se une a la IgE libre, mientras que Dupilumab bloquea la señalización de IL-4 e IL-13. Ambos son clave en el tratamiento de enfermedades alérgicas graves como el asma.</li><li class="mb-2"><b>Rituximab (Incorrecto):</b> Este fármaco se dirige a la molécula CD20 en los linfocitos B, usándose para tratar enfermedades mediadas por estas células, no por la vía IgE/IL-4/IL-13.</li></ul>' },
+                { id: 3, category: 'procesos', question: 'Los siguientes ítems están relacionados al procesamiento en moléculas MHC de clase I, excepto:', options: [ { text: 'Ubiquitina', correct: false }, { text: 'Vía endocítica', correct: true }, { text: 'Dominios alfa-1 y alfa-2 que forman el bolsillo de unión', correct: false }, { text: 'Proteasoma', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Vía endocítica (Respuesta Correcta):</b> Esta vía es para procesar antígenos *exógenos* (externos) y presentarlos en moléculas **MHC de clase II**. No está relacionada con la presentación en MHC de clase I.</li><li class="mb-2"><b>Ubiquitina, Dominios alfa-1/alfa-2 y Proteasoma (Distractores):</b> Todos son componentes esenciales de la vía de MHC clase I. La ubiquitina marca proteínas para su degradación por el proteasoma, y los dominios alfa forman el surco donde se aloja el péptido.</li></ul>' },
+                { id: 4, category: 'procesos', question: 'La activación del LT a través de su receptor (TCR) requiere la traslocación al núcleo de las siguientes moléculas, excepto:', options: [ { text: 'NfκB', correct: false }, { text: 'AP-1', correct: false }, { text: 'NFAT', correct: false }, { text: 'ZAP-70', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>ZAP-70 (Respuesta Correcta):</b> ZAP-70 es una quinasa citoplasmática que actúa en las etapas iniciales de la señalización del TCR. Inicia la cascada de señales pero *no* se trasloca al núcleo.</li><li class="mb-2"><b>NfκB, AP-1 y NFAT (Distractores):</b> Son los tres factores de transcripción clave que, una vez activados por la cascada de señalización del TCR, se traslocan al núcleo para iniciar la expresión de genes necesarios para la respuesta inmune.</li></ul>' },
+                { id: 5, category: 'celulas', question: 'Dentro de la estructura de un anticuerpo, la región involucrada en el reconocimiento de receptores celulares es:', options: [ { text: 'Regiones que determinan la complementariedad (CDRs)', correct: false }, { text: 'Fragmento cristalizable (Fc)', correct: true }, { text: 'Región de bisagra', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Fragmento cristalizable (Fc) (Respuesta Correcta):</b> La región Fc es la "cola" del anticuerpo y es la que interactúa con los receptores Fc (FcR) en la superficie de otras células inmunes (como macrófagos y células NK) para activar funciones efectoras.</li><li class="mb-2"><b>CDRs (Incorrecto):</b> Estas regiones forman el sitio de unión al *antígeno*, no a receptores celulares.</li><li class="mb-2"><b>Región de bisagra (Incorrecto):</b> Proporciona flexibilidad al anticuerpo pero no participa directamente en la unión a receptores.</li></ul>' },
+                { id: 6, category: 'procesos', question: 'Con relación a la maduración de los linfocitos B, indique cuál de las siguientes afirmaciones es cierta.', options: [ { text: 'La maduración la determinan los agentes infecciosos', correct: false }, { text: 'Los genes RAG1 y RAG2 se expresan en precursores de linfocitos B', correct: true }, { text: 'La recombinación y la proliferación son simultáneas', correct: false }, { text: 'La recombinación de cadenas livianas es primero', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Los genes RAG1 y RAG2 se expresan en precursores de linfocitos B (Respuesta Correcta):</b> Las enzimas RAG son esenciales para la recombinación V(D)J que genera la diversidad de los BCR, y este proceso ocurre durante la maduración en la médula ósea.</li><li class="mb-2"><b>Distractores:</b> La maduración es independiente de antígenos. La recombinación y proliferación son procesos secuenciales, no simultáneos. La recombinación de la cadena *pesada* ocurre primero.</li></ul>' },
+                { id: 7, category: 'celulas', question: '¿Qué familia de receptores de reconocimiento de patrón está involucrada con la formación del Inflamasoma?', options: [ { text: 'LCR', correct: false }, { text: 'Scavenger', correct: false }, { text: 'TLR', correct: false }, { text: 'NLR', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>NLR (Respuesta Correcta):</b> Los receptores tipo NOD (NLRs), específicamente la subfamilia NLRP, son los sensores citoplasmáticos que, al detectar una señal de peligro, ensamblan el complejo del inflamasoma para activar la caspasa-1 y producir IL-1β e IL-18.</li><li class="mb-2"><b>TLR (Incorrecto):</b> Los TLR pueden dar la "señal 1" para transcribir pro-IL-1β, pero no forman el inflamasoma.</li><li class="mb-2"><b>LCR y Scavenger (Incorrectos):</b> Tienen otras funciones en el reconocimiento de patógenos y la fagocitosis.</li></ul>' },
+                { id: 8, category: 'patologia', question: 'HLA-B27 se asocia con:', options: [ { text: 'Artritis reumatoide', correct: false }, { text: 'LES', correct: false }, { text: 'Espondilitis anquilosante', correct: true }, { text: 'Diabetes mellitus tipo 1', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Espondilitis anquilosante (Respuesta Correcta):</b> Esta es la asociación genética más fuerte y clásica en reumatología. Más del 90% de los pacientes con espondilitis anquilosante son HLA-B27 positivos.</li><li class="mb-2"><b>Distractores:</b> La artritis reumatoide se asocia con HLA-DR4/DR1, y la Diabetes tipo 1 y el LES se asocian principalmente con otros alelos de HLA de clase II (DR3, DR2).</li></ul>' },
+                { id: 9, category: 'celulas', question: 'Los LB son células profesionales presentadoras de antígeno porque tienen la capacidad de presentar antígenos tanto en moléculas MHC de clase I como en moléculas MHC de clase II.', options: [ { text: 'Verdadero', correct: true }, { text: 'Falso', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Verdadero (Respuesta Correcta):</b> Es una afirmación correcta. Como todas las células nucleadas, pueden presentar en MHC-I. Como APC profesional, expresan constitutivamente MHC-II para presentar antígenos exógenos a los linfocitos T CD4+. Esta doble capacidad es una característica de las APC profesionales.</li></ul>' },
+                { id: 10, category: 'celulas', question: '¿Cuál de las siguientes subpoblaciones celulares tiene dentro de sus principales funciones promover la INFLAMACIÓN?', options: [ { text: 'LT CD4 Th2', correct: false }, { text: 'LT CD4 Th9', correct: false }, { text: 'LT CD4 Th17', correct: true }, { text: 'LT CD4 Th22', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>LT CD4 Th17 (Respuesta Correcta):</b> Las células Th17 son las principales impulsoras de la inflamación mediada por neutrófilos a través de la producción de IL-17. Son cruciales en la defensa contra bacterias y hongos extracelulares y en la patogenia de muchas enfermedades autoinmunes.</li><li class="mb-2"><b>Th2 (Incorrecto):</b> Asociadas a alergias y parásitos (inflamación tipo 2).</li><li class="mb-2"><b>Th9 y Th22 (Incorrectos):</b> Tienen roles más específicos en alergias e inmunidad de barreras, respectivamente.</li></ul>' },
+                { id: 11, category: 'procesos', question: 'Al efecto de una interleuquina de contrarrestar el efecto de otra en una misma célula (ej: IL-4 inhibe la activación del macrófago inducida por IFN-gamma) se conoce como:', options: [ { text: 'Sinergismo', correct: false }, { text: 'Antagonismo', correct: true }, { text: 'Redundancia', correct: false }, { text: 'Pleiotropismo', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Antagonismo (Respuesta Correcta):</b> Ocurre cuando una citocina inhibe la acción de otra. El ejemplo dado, donde la IL-4 (Th2) contrarresta al IFN-gamma (Th1), es el ejemplo clásico de antagonismo entre vías inmunes.</li><li class="mb-2"><b>Distractores:</b> Redundancia (varias citocinas, mismo efecto), Sinergismo (efecto combinado > suma de efectos individuales), Pleiotropismo (una citocina, múltiples efectos).</li></ul>' },
+                { id: 12, category: 'patologia', question: 'Utilidad de la prueba VDRL:', options: [ { text: 'Diagnóstico de Sífilis', correct: true }, { text: 'Seguimiento de tto de Sífilis', correct: true }, { text: 'Permite elección del tto', correct: false }, { text: 'Confirma presencia de T. Pallidum', correct: false } ], isMultipleChoice: true, explanation: '<ul><li class="mb-2"><b>Diagnóstico y Seguimiento (Correctas):</b> La VDRL es una prueba no treponémica usada para el tamizaje (diagnóstico presuntivo) y, crucialmente, para el seguimiento del tratamiento, ya que sus títulos deben disminuir con una terapia exitosa.</li><li class="mb-2"><b>Elección del tto y Confirmación (Incorrectas):</b> La VDRL no elige el tratamiento. Tampoco confirma la infección, ya que no es específica para *T. pallidum* y puede dar falsos positivos. Para la confirmación se requiere una prueba treponémica (ej. FTA-ABS).</li></ul>' },
+                { id: 13, category: 'celulas', question: 'La IgG humana puede unirse al receptor Fc neonatal (FcRn) activando las siguientes funciones, excepto:', options: [ { text: 'Este complejo solo es funcional durante el desarrollo embrionario', correct: true }, { text: 'Transporte bidireccional en las mucosas del recién nacido', correct: false }, { text: 'Aumento de la vida media de la IgG', correct: false }, { text: 'Transporte placentario a la circulación fetal', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Solo es funcional durante el desarrollo embrionario (Respuesta Correcta):</b> Esta afirmación es falsa. El FcRn es crucial durante el desarrollo para el paso de IgG por la placenta, pero también es vital en la vida adulta para proteger a la IgG de la degradación, extendiendo su vida media.</li><li class="mb-2"><b>Distractores:</b> El transporte placentario, el aumento de la vida media y el transporte en mucosas son funciones bien establecidas del FcRn.</li></ul>' },
+                { id: 14, category: 'procesos', question: 'La hipersensibilidad de tipo IV:', options: [ { text: 'Es una reacción mediada por linfocitos B sensibilizados', correct: false }, { text: 'Está mediada por mastocitos', correct: false }, { text: 'Es desencadenada por complejos inmunes', correct: false }, { text: 'Es una reacción mediada por linfocitos T sensibilizados', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Mediadas por linfocitos T sensibilizados (Respuesta Correcta):</b> La hipersensibilidad tipo IV es la única mediada por células (linfocitos T) y no por anticuerpos. Es una reacción retardada (24-72h).</li><li class="mb-2"><b>Distractores:</b> La mediada por mastocitos es la tipo I, la de inmunocomplejos es la tipo III, y la mediada por linfocitos B (que producen Ac) corresponde a las tipo I, II y III.</li></ul>' },
+                { id: 15, category: 'celulas', question: 'Las células dendríticas son las células presentadoras del antígeno profesionales más eficientes.', options: [ { text: 'Falso', correct: false }, { text: 'Verdadero', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Verdadero (Respuesta Correcta):</b> Las células dendríticas son las únicas APCs capaces de activar eficientemente a los linfocitos T vírgenes (naive), iniciando así la respuesta inmune adaptativa. Son las "centinelas" del sistema inmune.</li></ul>' },
+                { id: 16, category: 'patologia', question: 'La expresión aumentada de CTLA4 y PDL1 en las células tumorales conducen a:', options: [ { text: 'Activación de LT CD8', correct: false }, { text: 'Anergia de LT', correct: true }, { text: 'Aumento de IL-2', correct: false }, { text: 'Enfoque terapéutico antitumoral', correct: true } ], isMultipleChoice: true, explanation: '<ul><li class="mb-2"><b>Anergia de LT y Enfoque terapéutico (Correctas):</b> Estas moléculas son "puntos de control" inmunitario que los tumores usan para inactivar a los linfocitos T (anergia). Precisamente por esto, se han convertido en un blanco terapéutico fundamental en la inmunoterapia del cáncer (inhibidores de checkpoint).</li><li class="mb-2"><b>Activación de LT y Aumento de IL-2 (Incorrectas):</b> Estas moléculas hacen exactamente lo contrario: *inhiben* la activación y, por ende, la producción de citocinas como la IL-2.</li></ul>' },
+                { id: 17, category: 'patologia', question: 'El asma alérgico se ha asociado al incremento y mayor efecto de cuál de las siguientes subpoblaciones de Células Linfoides Innatas (ILCs)?', options: [ { text: 'ILC2s', correct: true }, { text: 'ILC1s', correct: false }, { text: 'ILC4s', correct: false }, { text: 'ILC3s', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>ILC2s (Respuesta Correcta):</b> Las Células Linfoides Innatas tipo 2 son la contraparte innata de las células Th2. Producen citocinas tipo 2 (IL-5, IL-13) que impulsan la inflamación eosinofílica y la hiperreactividad bronquial características del asma alérgico.</li><li class="mb-2"><b>Distractores:</b> ILC1s e ILC3s están asociadas a inmunidad tipo 1 y tipo 17, respectivamente. ILC4 no es una categoría estándar.</li></ul>' },
+                { id: 18, category: 'celulas', question: 'Respecto al receptor para antígeno de los linfocitos B (BCR), una de las siguientes afirmaciones NO es correcta:', options: [ { text: 'Presenta un único sitio de combinación', correct: true }, { text: 'Pertenece a la superfamilia de las inmunoglobulinas', correct: false }, { text: 'Presenta dominios variables y constantes', correct: false }, { text: 'Existe en forma circulante, como los anticuerpos', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Presenta un único sitio de combinación (Respuesta Correcta):</b> Esta afirmación es falsa. Un BCR funcional, al igual que una molécula de anticuerpo monomérica, es bivalente; es decir, tiene **dos** sitios de unión al antígeno idénticos.</li><li class="mb-2"><b>Distractores:</b> Todas las demás afirmaciones son correctas. El BCR es una inmunoglobulina de membrana, tiene dominios V y C, y su contraparte secretada son los anticuerpos.</li></ul>' },
+                { id: 19, category: 'procesos', question: 'La molécula HLA-DM tiene como función liberar a las moléculas MHC-clase II del péptido CLIP favoreciendo la unión de péptidos estables.', options: [ { text: 'Falso', correct: false }, { text: 'Verdadero', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Verdadero (Respuesta Correcta):</b> La afirmación describe perfectamente la función de HLA-DM. Actúa como un "editor" o "catalizador" que retira el péptido CLIP del surco de unión de MHC-II, permitiendo que péptidos antigénicos de mayor afinidad se unan y sean presentados.</li></ul>' },
+                { id: 20, category: 'celulas', question: 'TODAS las siguientes son efectos del Interferón gamma (IFN-γ) en la respuesta inmune EXCEPTO:', options: [ { text: 'Estimulan la diferenciación de linfocitos T CD4+ hacia el fenotipo Th-1', correct: false }, { text: 'Aumentan la expresión de MHC-II', correct: false }, { text: 'Estimula la producción de IL-4, IL-13 e IL-5 por el macrófago M2', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Estimula la producción de citocinas M2 (Respuesta Correcta):</b> Esta es la excepción. IFN-γ es la citocina prototípica de la respuesta tipo 1 y *antagoniza* la respuesta tipo 2 (que incluye las citocinas IL-4, IL-13, IL-5 y la polarización de macrófagos M2).</li><li class="mb-2"><b>Distractores:</b> El IFN-γ es fundamental para la diferenciación de Th1 y para aumentar la expresión de MHC-II en APCs.</li></ul>' },
+                { id: 21, category: 'celulas', question: 'TODAS las siguientes células expresan el co-receptor CD3 EXCEPTO:', options: [ { text: 'Linfocitos T gamma-delta (γδ)', correct: false }, { text: 'Células NK', correct: true }, { text: 'Linfocitos T CD8+ alfa-beta (αβ)', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Células NK (Respuesta Correcta):</b> Las células Natural Killer son linfocitos, pero pertenecen a la inmunidad innata y no expresan el Receptor de Células T (TCR), por lo que carecen del complejo CD3 asociado a este.</li><li class="mb-2"><b>Distractores:</b> Todos los tipos de linfocitos T (CD4+, CD8+, γδ) expresan el complejo CD3, ya que es indispensable para la señalización a través de sus respectivos TCR.</li></ul>' },
+                { id: 22, category: 'procesos', question: '¿Cuál de las siguientes situaciones representa un ejemplo clásico de inmunidad pasiva?', options: [ { text: 'Generación de anticuerpos tras recibir una vacuna', correct: false }, { text: 'Administración de inmunoglobulina anti-VHB a un recién nacido', correct: true }, { text: 'Respuesta inmunitara tras exposición a una toxina', correct: false }, { text: 'Vacunación contra el sarampión', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Administración de inmunoglobulina (Respuesta Correcta):</b> La inmunidad pasiva es la transferencia de anticuerpos pre-formados, confiriendo protección inmediata pero temporal. La administración de inmunoglobulinas (gammaglobulinas) es el ejemplo por excelencia de inmunidad pasiva artificial.</li><li class="mb-2"><b>Distractores:</b> Todos los demás ejemplos (vacunación, infección natural) describen la inmunidad *activa*, donde el propio sistema inmune del individuo genera la respuesta.</li></ul>' },
+                { id: 23, category: 'patologia', question: 'La Activación de macrófagos y LTh1 se relaciona con:', options: [ { text: 'Eritroblastosis fetal', correct: false }, { text: 'Lupus Eritematoso Sistémico', correct: false }, { text: 'Granuloma', correct: true }, { text: 'Reacciones atópicas a alérgenos', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Granuloma (Respuesta Correcta):</b> La formación de un granuloma es la manifestación histológica de una respuesta inmune mediada por células tipo IV, donde los linfocitos Th1 producen IFN-γ para activar a los macrófagos y contener una infección persistente (como la tuberculosis).</li><li class="mb-2"><b>Distractores:</b> La eritroblastosis es tipo II, el lupus es principalmente tipo III, y las reacciones atópicas son tipo I.</li></ul>' },
+                { id: 24, category: 'procesos', question: 'Los LT reguladores CD4+ provenientes de la selección negativa en el timo son células T autorreactivas que expresan altas cantidades de la molécula CTLA4.', options: [ { text: 'Verdadero', correct: false }, { text: 'Falso', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Falso (Respuesta Correcta):</b> El error está en "provenientes de la selección negativa". La selección negativa *elimina* a los linfocitos T muy autorreactivos. Los LT reguladores (Tregs) se desarrollan a partir de timocitos que reconocen antígenos propios con una afinidad intermedia-alta, lo que los desvía hacia un linaje supresor en lugar de eliminarlos. Es un proceso de diferenciación distinto.</li></ul>' },
+                { id: 25, category: 'patologia', question: 'En la Enfermedad de Graves, los autoanticuerpos contra el receptor de TSH forman una reacción Ag-Ac y fijan complemento por la vía clásica produciendo destrucción tisular.', options: [ { text: 'Falso', correct: true }, { text: 'Verdadero', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Falso (Respuesta Correcta):</b> La patogenia principal en la Enfermedad de Graves no es la destrucción. Los autoanticuerpos contra el receptor de TSH son *estimulantes*, imitan a la TSH y causan una sobreproducción de hormonas tiroideas (hipertiroidismo). La destrucción es más característica de la Tiroiditis de Hashimoto.</li></ul>' },
+                { id: 26, category: 'patologia', question: 'En una citometría de flujo, ¿qué esperaría al marcar los linfocitos T citotóxicos?', options: [ { text: 'Positivo para CD16 y CD8', correct: false }, { text: 'Positivo para CD8 y CD3', correct: true }, { text: 'Negativo para CD4 y CD8', correct: false }, { text: 'Negativo para CD3 y positivo para CD8', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Positivo para CD8 y CD3 (Respuesta Correcta):</b> La firma inmunofenotípica de un linfocito T citotóxico es la co-expresión de CD3 (marcador de todos los LT) y CD8 (marcador de la subpoblación citotóxica/supresora).</li><li class="mb-2"><b>Distractores:</b> CD16 es de células NK; ser negativo para CD3 pero positivo para CD8 no es un fenotipo de LT.</li></ul>' },
+                { id: 27, category: 'celulas', question: 'Los siguientes son Interferones de Tipo I, excepto:', options: [ { text: 'IFN-γ (Interferón gamma)', correct: true }, { text: 'IFN-β', correct: false }, { text: 'IFN-α', correct: false }, { text: 'IFN-ω (Interferón omega)', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>IFN-γ (Respuesta Correcta):</b> El interferón gamma es el único miembro de los interferones de **Tipo II**. Es producido por células inmunes (linfocitos T, NK) y tiene un rol inmunomodulador.</li><li class="mb-2"><b>Distractores:</b> IFN-α, IFN-β e IFN-ω son los miembros clásicos de la familia de interferones de Tipo I, principalmente involucrados en la respuesta antiviral innata.</li></ul>' },
+                { id: 28, category: 'celulas', question: 'De las siguientes citoquinas señale las dos que son citoquinas que clásicamente se han considerado anti-inflamatorias:', options: [ { text: 'IL-15 y IL-18', correct: false }, { text: 'IL-12 y IFN-gamma', correct: false }, { text: 'IL-10 y TGF-beta (TGF-β)', correct: true }, { text: 'IL-1 y TNF-alfa', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>IL-10 y TGF-β (Respuesta Correcta):</b> Estas dos son las principales citocinas inmunosupresoras y anti-inflamatorias. Su función es frenar la respuesta inmune para evitar un daño excesivo y mantener la tolerancia.</li><li class="mb-2"><b>Distractores:</b> Todas las demás opciones contienen citocinas que son potentemente pro-inflamatorias (IL-1, TNF-alfa, IL-12, IFN-gamma, IL-18).</li></ul>' },
+                { id: 29, category: 'procesos', question: 'El calostro, ¿Cuál es el isotipo más abundante en esta secreción y por qué?', options: [ { text: 'IgE porque se fija a células cebadas tisulares', correct: false }, { text: 'IgG porque está presente en las secreciones', correct: false }, { text: 'IgA porque posee un componente secretor que lo protege de la acción de enzimas', correct: true }, { text: 'IgM porque marca una respuesta inmune primaria', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>IgA (Respuesta Correcta):</b> La IgA secretora (sIgA) es el anticuerpo predominante en todas las secreciones mucosas, incluido el calostro. El "componente secretor" la protege de la degradación enzimática en el tracto digestivo del recién nacido, permitiéndole ejercer su función protectora.</li><li class="mb-2"><b>Distractores:</b> IgG es abundante en sangre y cruza la placenta, pero no es la principal en secreciones. IgE e IgM están presentes en concentraciones mucho más bajas.</li></ul>' },
+                { id: 30, category: 'procesos', question: '¿Cuál de las siguientes afirmaciones es falsa, en cuanto al procesamiento y presentación de antígeno en moléculas MHC clase II?', options: [ { text: 'Se realiza eficientemente en fibroblastos', correct: true }, { text: 'Es transcripcionalmente regulado por CIITA', correct: false }, { text: 'Los complejos MHC-péptido se ensamblan en la vía endocítica', correct: false }, { text: 'Es estimulado en macrófagos por el Interferón gamma', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Se realiza eficientemente en fibroblastos (Respuesta Correcta):</b> Esta afirmación es falsa. Los fibroblastos no son APCs profesionales y normalmente no expresan MHC de clase II. La presentación en MHC-II es una función especializada de las células dendríticas, macrófagos y linfocitos B.</li><li class="mb-2"><b>Distractores:</b> Todas las demás afirmaciones son verdaderas. La expresión de MHC-II es regulada por CIITA, el ensamblaje ocurre en la vía endocítica, y el IFN-γ aumenta su expresión en APCs.</li></ul>' },
+                { id: 31, category: 'celulas', question: 'Señale el número de moléculas MHC clase I y MHC clase II expresadas por un fibroblasto en reposo.', options: [ { text: '12', correct: false }, { text: '8', correct: false }, { text: '4', correct: false }, { text: '6', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>6 (Respuesta Correcta):</b> Un fibroblasto en reposo es una célula nucleada y, por lo tanto, expresa moléculas MHC de clase I. Los humanos tienen tres loci principales de MHC clase I (HLA-A, HLA-B, HLA-C). Dado que cada individuo hereda dos alelos (uno materno y uno paterno) para cada locus, un individuo puede expresar hasta 6 moléculas diferentes de MHC clase I (2 de HLA-A, 2 de HLA-B, 2 de HLA-C). Un fibroblasto en reposo *no* expresa MHC clase II.</li><li class="mb-2"><b>12, 8, 4 (Distractores):</b> Estos números no corresponden a la expresión típica de MHC clase I en una célula somática.</li></ul>' },
+                { id: 32, category: 'procesos', question: 'La combinación del estímulo de la señal 1 más la señal 2 en un LT virgen genera en el LT activado:', options: [ { text: 'Producción de interferones tipo I no inmunes (Alfa, Beta, Tau, Lambda)', correct: false }, { text: 'Expresión del receptor para CD40 sobre la superficie de LT activado', correct: false }, { text: 'Producción de IL-2 y proliferación clonal del LT activado', correct: true }, { text: 'Anergia del linfocito T', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Producción de IL-2 y proliferación clonal del LT activado (Respuesta Correcta):</b> La activación completa de un linfocito T virgen requiere dos señales: la señal 1 (reconocimiento del péptido-MHC por el TCR) y la señal 2 (coestimulación, principalmente CD28-B7). La combinación de estas dos señales es necesaria y suficiente para inducir la síntesis de IL-2, una citocina crucial que actúa como factor de crecimiento autocrino para el linfocito T, promoviendo su proliferación clonal.</li><li class="mb-2"><b>Producción de interferones tipo I no inmunes (Incorrecta):</b> Los interferones tipo I (IFN-α, IFN-β) son producidos principalmente por células infectadas por virus y células dendríticas plasmocitoides, no por linfocitos T activados como su principal producto.</li><li class="mb-2"><b>Expresión del receptor para CD40 sobre la superficie de LT activado (Incorrecta):</b> Los linfocitos T activados expresan el ligando de CD40 (CD40L), que se une al receptor CD40 en las APCs (como los linfocitos B y las células dendríticas) para proporcionar coestimulación a estas últimas, no al revés.</li><li class="mb-2"><b>Anergia del linfocito T (Incorrecta):</b> La anergia del linfocito T se induce cuando el LT recibe la señal 1 (reconocimiento del péptido-MHC) en ausencia de la señal 2 (coestimulación). Es un mecanismo de tolerancia para prevenir la autoinmunidad.</li></ul>' },
+                { id: 33, category: 'celulas', question: 'Los idiotipos de un anticuerpo se localizan en:', options: [ { text: 'Sus regiones variables', correct: true }, { text: 'Las regiones constantes de la cadena ligera', correct: false }, { text: 'El fragmento Fc', correct: false }, { text: 'Los extremos carboxilo de la proteína', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Sus regiones variables (Respuesta Correcta):</b> Los idiotipos son determinantes antigénicos únicos que se encuentran en la región variable del anticuerpo, específicamente en las Regiones Determinantes de la Complementariedad (CDRs) que forman el sitio de unión al antígeno. La singularidad de los idiotipos se debe a la secuencia de aminoácidos de las regiones V, D y J que forman el sitio de unión al antígeno.</li><li class="mb-2"><b>Las regiones constantes de la cadena ligera (Incorrecta):</b> Las regiones constantes de la cadena ligera son las mismas para todos los anticuerpos de un isotipo dado y no contribuyen a la especificidad del antígeno ni a la diversidad de idiotipos.</li><li class="mb-2"><b>El fragmento Fc (Incorrecta):</b> El fragmento Fc está compuesto por las regiones constantes de las cadenas pesadas y es responsable de las funciones efectoras del anticuerpo (ej., unión a receptores Fc, activación del complemento), no del reconocimiento del antígeno ni de la especificidad idiotípica.</li><li class="mb-2"><b>Los extremos carboxilo de la proteína (Incorrecta):</b> Los extremos carboxilo se encuentran en las regiones constantes de las cadenas pesadas y ligeras y no están directamente involucrados en la determinación de los idiotipos.</li></ul>' },
+                { id: 34, category: 'celulas', question: 'Las subclases de IgG humana:', options: [ { text: 'Se encuentran en la sangre en igual proporción', correct: false }, { text: 'Difieren en su capacidad de activar el complemento', correct: true }, { text: 'Son estructuralmente idénticas', correct: false }, { text: 'Tienen fragmentos Fc idénticos', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Difieren en su capacidad de activar el complemento (Respuesta Correcta):</b> Las cuatro subclases de IgG humana (IgG1, IgG2, IgG3, IgG4) difieren en la secuencia de aminoácidos de su región de bisagra y en algunas partes de sus dominios constantes del fragmento Fc. Estas diferencias estructurales confieren distintas capacidades funcionales, siendo la activación del complemento una de las más importantes: IgG3 es el activador más potente, seguido por IgG1, IgG2, mientras que IgG4 es un activador muy pobre o nulo.</li><li class="mb-2"><b>Se encuentran en la sangre en igual proporción (Incorrecta):</b> Las subclases de IgG no se encuentran en proporciones iguales en la sangre. IgG1 es la más abundante, seguida por IgG2, IgG3 y IgG4, aunque las proporciones exactas pueden variar.</li><li class="mb-2"><b>Son estructuralmente idénticas (Incorrecta):</b> Como se mencionó, difieren en la región de bisagra y en los dominios constantes del fragmento Fc, lo que les confiere propiedades funcionales distintas.</li><li class="mb-2"><b>Tienen fragmentos Fc idénticos (Incorrecta):</b> Las diferencias en los dominios constantes del fragmento Fc entre las subclases son las que determinan sus distintas funciones efectoras, incluyendo la unión a receptores Fc y la activación del complemento.</li></ul>' },
+                { id: 35, category: 'celulas', question: 'Indique cuál de las siguientes moléculas le presenta el antígeno a las Células NKT:', options: [ { text: 'MHC II', correct: false }, { text: 'MHC I', correct: false }, { text: 'CD14', correct: false }, { text: 'CD1', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>CD1 (Respuesta Correcta):</b> Las células NKT (Natural Killer T cells) son un tipo de linfocitos T que reconocen antígenos lipídicos y glucolipídicos presentados por moléculas de la familia CD1 (principalmente CD1d), no por las moléculas MHC clásicas que presentan péptidos.</li><li class="mb-2"><b>MHC I y MHC II (Incorrectas):</b> Las moléculas MHC de clase I presentan péptidos a los linfocitos T CD8+, y las moléculas MHC de clase II presentan péptidos a los linfocitos T CD4+ convencionales.</li><li class="mb-2"><b>CD14 (Incorrecta):</b> CD14 es un receptor de reconocimiento de patrón (PRR) en la superficie de monocitos y macrófagos, que participa en el reconocimiento de lipopolisacáridos (LPS) bacterianos, pero no es una molécula presentadora de antígeno.</li></ul>' },
+                { id: 36, category: 'patologia', question: 'El defecto genético en el Angioedema Hereditario tipos I y II está asociado a:', options: [ { text: 'El bloqueo de los canales de Ca++ a nivel de la membrana celular', correct: false }, { text: 'La disgregación del complejo C1', correct: false }, { text: 'La no síntesis del factor inhibitorio de C1 (INHC1) y alteración en su función', correct: true }, { text: 'La no formación de C5 convertasa', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>La no síntesis del factor inhibitorio de C1 (INHC1) y alteración en su función (Respuesta Correcta):</b> El Angioedema Hereditario (AEH) tipos I y II se debe a un defecto genético en el gen que codifica el inhibidor de C1 (C1-INH). En el AEH tipo I, hay una deficiencia en la cantidad de C1-INH. En el AEH tipo II, la proteína C1-INH está presente en cantidad normal o elevada, pero es disfuncional. La ausencia o disfunción de C1-INH lleva a una activación incontrolada de la vía clásica del complemento y del sistema de calicreína-bradicinina, lo que resulta en la producción excesiva de bradicinina, un potente mediador que aumenta la permeabilidad vascular y causa angioedema.</li><li class="mb-2"><b>El bloqueo de los canales de Ca++ a nivel de la membrana celular (Incorrecta):</b> Esto no está directamente relacionado con el mecanismo del AEH.</li><li class="mb-2"><b>La disgregación del complejo C1 (Incorrecta):</b> El C1-INH normalmente inhibe la activación del complejo C1 (C1qrs). Su deficiencia lleva a una *activación y consumo* descontrolado de C1, no a su disgregación.</li><li class="mb-2"><b>La no formación de C5 convertasa (Incorrecta):</b> La deficiencia de C1-INH conduce a una activación *excesiva* de las vías del complemento, lo que podría llevar a una formación *aumentada* o desregulada de C5 convertasa en ciertas condiciones, pero no a su no formación.</li></ul>' },
+                { id: 37, category: 'celulas', question: '¿Cuál de las siguientes poblaciones de células citotóxicas NO requiere selección tímica?', options: [ { text: 'NK', correct: true }, { text: 'LT CD4+', correct: false }, { text: 'Células dendríticas', correct: false }, { text: 'Th17', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>NK (Respuesta Correcta):</b> Las células Natural Killer (NK) son parte de la inmunidad innata y maduran principalmente en la médula ósea. No expresan un receptor de células T (TCR) y, por lo tanto, no requieren pasar por el proceso de selección tímica (selección positiva y negativa) que es exclusivo para la maduración de los linfocitos T.</li><li class="mb-2"><b>LT CD4+ y Th17 (Incorrectas):</b> Tanto los linfocitos T CD4+ (incluyendo sus subpoblaciones como Th17) son linfocitos T y, por definición, deben madurar en el timo, donde sufren los procesos de selección tímica para asegurar la restricción por MHC y la tolerancia a lo propio.</li><li class="mb-2"><b>Células dendríticas (Incorrecta):</b> Las células dendríticas son células presentadoras de antígeno (APCs) y no son linfocitos citotóxicos. Aunque son cruciales para la activación de los linfocitos T, no son linfocitos y, por lo tanto, no pasan por selección tímica.</li></ul>' },
+                { id: 38, category: 'celulas', question: 'De acuerdo con su perfil de secreción de citoquinas, indique a cuál población de Linfocitos T CD4+ se parecen más los Linfocitos T CD8+:', options: [ { text: 'Th1', correct: true }, { text: 'Th2', correct: false }, { text: 'Treg', correct: false }, { text: 'Th17', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Th1 (Respuesta Correcta):</b> Los linfocitos T CD8+ citotóxicos, al activarse, producen citocinas de perfil tipo 1, como el Interferón gamma (IFN-$\gamma$) y el Factor de Necrosis Tumoral alfa (TNF-$\alpha$), así como IL-2. Este perfil de citocinas es muy similar al de los linfocitos T helper 1 (Th1), que también son cruciales en la inmunidad mediada por células contra patógenos intracelulares.</li><li class="mb-2"><b>Th2 (Incorrecta):</b> Las células Th2 producen citocinas como IL-4, IL-5 e IL-13, que promueven la inmunidad humoral y la respuesta contra parásitos.</li><li class="mb-2"><b>Treg (Incorrecta):</b> Los linfocitos T reguladores (Treg) producen citocinas supresoras como IL-10 y TGF-$\beta$, que mantienen la tolerancia inmunológica.</li><li class="mb-2"><b>Th17 (Incorrecta):</b> Las células Th17 producen principalmente IL-17 e IL-22, que están involucradas en la inflamación y la inmunidad contra bacterias y hongos extracelulares.</li></ul>' },
+                { id: 39, category: 'procesos', question: '¿Cuáles son las dos rutas mediadas por los LT CD8 citotóxicos que activan la apoptosis en la célula diana?', options: [ { text: 'Granzimas e IFN-γ', correct: false }, { text: 'Granzimas y perforinas', correct: true }, { text: 'FAS/FASL y perforinas', correct: false }, { text: 'Granzimas y FAS/FASL', correct: true } ], isMultipleChoice: true, explanation: '<ul><li class="mb-2"><b>Granzimas y perforinas (Correcta):</b> Esta es la vía principal de citotoxicidad. Las perforinas forman poros en la membrana de la célula diana, permitiendo que las granzimas (enzimas serina proteasas) entren al citoplasma y activen las caspasas, lo que lleva a la apoptosis.</li><li class="mb-2"><b>Granzimas y FAS/FASL (Correcta):</b> La vía Fas/FasL es otra ruta crucial. El ligando Fas (FasL), expresado en la superficie del LT CD8+, se une al receptor Fas (CD95) en la célula diana. Esta unión activa una cascada de caspasas intracelulares en la célula diana, induciendo su apoptosis.</li><li class="mb-2"><b>Granzimas e IFN-γ (Incorrecta):</b> El IFN-$\gamma$ es una citocina producida por los LT CD8+ (y Th1) que tiene efectos inmunomoduladores y antivirales, pero no induce directamente la apoptosis de la célula diana a través de esta vía.</li><li class="mb-2"><b>FAS/FASL y perforinas (Incorrecta):</b> Aunque Fas/FasL y perforinas son mecanismos distintos, la opción es incorrecta al no mencionar a las granzimas, que son esenciales para la vía de la perforina.</li></ul>' },
+                { id: 40, category: 'celulas', question: 'Respecto a la IgM sérica humana:', options: [ { text: 'Predomina en la respuesta humoral primaria', correct: true }, { text: 'Pasa de la madre al feto a través de la placenta', correct: false }, { text: 'Es típicamente dimérica', correct: false }, { text: 'No tiene capacidad para activar el complemento', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Predomina en la respuesta humoral primaria (Respuesta Correcta):</b> La IgM es el primer isotipo de anticuerpo producido en una respuesta inmune primaria. Su forma pentamérica le confiere una alta avidez para unirse a antígenos multivalentes, siendo muy eficiente en la activación temprana del complemento y en la aglutinación de patógenos.</li><li class="mb-2"><b>Pasa de la madre al feto a través de la placenta (Incorrecta):</b> Solo la IgG es capaz de atravesar la placenta para proporcionar inmunidad pasiva al feto.</li><li class="mb-2"><b>Es típicamente dimérica (Incorrecta):</b> La IgM sérica es típicamente pentamérica (formada por cinco unidades de anticuerpo unidas por una cadena J), mientras que la IgA secretora es la que es típicamente dimérica.</li><li class="mb-2"><b>No tiene capacidad para activar el complemento (Incorrecta):</b> La IgM es el activador más potente de la vía clásica del complemento, incluso más que la IgG.</li></ul>' },
+                { id: 41, category: 'celulas', question: 'La distinción de inmunoglobulinas humanas se basa primariamente en:', options: [ { text: 'Su afinidad por el antígeno', correct: false }, { text: 'El número de puentes disulfuro', correct: false }, { text: 'Su composición alotípica', correct: false }, { text: 'El tipo de cadena pesada', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>El tipo de cadena pesada (Respuesta Correcta):</b> Las diferentes clases o isotipos de inmunoglobulinas humanas (IgG, IgA, IgM, IgE, IgD) se definen por las diferencias en la estructura de sus cadenas pesadas. Cada clase tiene una cadena pesada específica (gamma ($\gamma$), alfa ($\alpha$), mu ($\mu$), épsilon ($\epsilon$), delta ($\delta$), respectivamente) que le confiere propiedades funcionales y estructurales distintas.</li><li class="mb-2"><b>Su afinidad por el antígeno (Incorrecta):</b> La afinidad se refiere a la fuerza de unión entre un solo sitio de unión del anticuerpo y un epítopo del antígeno, y varía entre diferentes anticuerpos dentro de la misma clase.</li><li class="mb-2"><b>El número de puentes disulfuro (Incorrecta):</b> Aunque el número y la disposición de los puentes disulfuro son importantes para la estructura de las inmunoglobulinas, no son el criterio primario para su clasificación en clases.</li><li class="mb-2"><b>Su composición alotípica (Incorrecta):</b> Los alotipos son variaciones genéticas menores en las regiones constantes de las cadenas pesadas o ligeras dentro de una misma especie, que pueden variar entre individuos, pero no definen las clases principales de inmunoglobulinas.</li></ul>' },
+                { id: 42, category: 'procesos', question: 'Los siguientes ítems están relacionados con el procesamiento en MHC de clase II, EXCEPTO:', options: [ { text: 'Longitud del péptido 9–25 aminoácidos', correct: false }, { text: 'HLA-DM, Cadena invariable', correct: false }, { text: 'Calnexina, Calreticulina, Tapasina', correct: true }, { text: 'Linfocitos T CD4+', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Calnexina, Calreticulina, Tapasina (Respuesta Correcta):</b> Estas proteínas chaperonas están involucradas en el ensamblaje y la carga de péptidos en las moléculas **MHC de clase I** en el retículo endoplásmico. No participan en el procesamiento de MHC de clase II.</li><li class="mb-2"><b>Longitud del péptido 9–25 aminoácidos (Incorrecta):</b> Las moléculas MHC de clase II presentan péptidos de mayor longitud (típicamente 13-25 aminoácidos o más) en comparación con los de MHC clase I (8-11 aminoácidos), debido a que su surco de unión está abierto en los extremos.</li><li class="mb-2"><b>HLA-DM, Cadena invariable (Incorrecta):</b> Tanto la cadena invariable (que guía el MHC-II a los endosomas y bloquea el surco de unión con CLIP) como HLA-DM (que cataliza el intercambio de CLIP por péptidos antigénicos) son componentes esenciales de la vía de procesamiento de MHC de clase II.</li><li class="mb-2"><b>Linfocitos T CD4+ (Incorrecta):</b> Las moléculas MHC de clase II presentan péptidos a los linfocitos T CD4+ (células T helper), que son los principales reguladores de la respuesta inmune adaptativa.</li></ul>' },
+                { id: 43, category: 'celulas', question: 'La afinidad de un anticuerpo se define como:', options: [ { text: 'El indicador del grado de analogía con otro anticuerpo', correct: false }, { text: 'Una característica de los anticuerpos monoclonales', correct: false }, { text: 'El número de lugares de unión de un anticuerpo al antígeno', correct: false }, { text: 'La medida de la fuerza de unión a un epítope', correct: true } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>La medida de la fuerza de unión a un epítope (Respuesta Correcta):</b> La afinidad se refiere a la fuerza de unión entre un *único* sitio de unión de un anticuerpo (paratope) y un *único* determinante antigénico (epítope). Es una medida de la fuerza de las interacciones no covalentes entre el anticuerpo y el antígeno.</li><li class="mb-2"><b>El indicador del grado de analogía con otro anticuerpo (Incorrecta):</b> Esto no es una definición de afinidad.</li><li class="mb-2"><b>Una característica de los anticuerpos monoclonales (Incorrecta):</b> La afinidad es una propiedad de *todos* los anticuerpos, tanto monoclonales como policlonales.</li><li class="mb-2"><b>El número de lugares de unión de un anticuerpo al antígeno (Incorrecta):</b> Esto se refiere a la **valencia** de un anticuerpo (ej., IgG tiene valencia 2, IgM tiene valencia 10), no a su afinidad.</li></ul>' },
+                { id: 44, category: 'procesos', question: 'Para que pueda llevarse a cabo el empalme de dos segmentos génicos variables durante la recombinación somática, se requiere abrir el bucle formado por las dos hebras paralelas de DNA. Esto lo hace la enzima:', options: [ { text: 'Artemis', correct: true }, { text: 'RAG1', correct: false }, { text: 'DNA-PK', correct: false }, { text: 'Deoxinucleotidil transferasa (TdT)', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Artemis (Respuesta Correcta):</b> Durante la recombinación V(D)J, las enzimas RAG1/RAG2 reconocen las secuencias de señal de recombinación (RSS) y realizan cortes de doble cadena en el ADN, generando estructuras en horquilla (hairpins) en los extremos de los segmentos génicos. La enzima **Artemis**, en complejo con la cinasa dependiente de ADN (DNA-PKcs), es la que abre estas horquillas, lo que es un paso crucial para el empalme de los segmentos génicos.</li><li class="mb-2"><b>RAG1 (Incorrecta):</b> RAG1 (junto con RAG2) es responsable de los cortes iniciales en el ADN que forman las horquillas, pero no de abrirlas.</li><li class="mb-2"><b>DNA-PK (Incorrecta):</b> La cinasa dependiente de ADN (DNA-PKcs) es una enzima que se une a los extremos rotos del ADN y activa a Artemis, pero no es la que abre directamente las horquillas.</li><li class="mb-2"><b>Deoxinucleotidil transferasa (TdT) (Incorrecta):</b> La TdT es una enzima que añade nucleótidos de forma aleatoria (nucleótidos N) en las uniones de los segmentos génicos, contribuyendo a la diversidad de unión, pero no abre las horquillas.</li></ul>' },
+                { id: 45, category: 'patologia', question: '¿Cuál es una ventaja clave de la vacuna oral contra el polio (Sabin) en comparación con la vacuna inactivada (Salk)?', options: [ { text: 'Es completamente segura para personas inmunosuprimidas', correct: false }, { text: 'Induce inmunidad tanto sistémica como en la mucosa intestinal', correct: true }, { text: 'No genera inmunidad de rebaño', correct: false }, { text: 'No requiere múltiples dosis para generar protección', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Induce inmunidad tanto sistémica como en la mucosa intestinal (Respuesta Correcta):</b> La vacuna oral contra el polio (OPV o Sabin) contiene virus vivos atenuados. Al replicarse en el intestino, induce una respuesta inmune local en la mucosa (producción de IgA secretora) que previene la infección y la transmisión del virus. También induce una respuesta sistémica (IgG). La vacuna inactivada (IPV o Salk) solo induce inmunidad sistémica.</li><li class="mb-2"><b>Es completamente segura para personas inmunosuprimidas (Incorrecta):</b> La OPV, al contener virus vivos atenuados, *no* es completamente segura para personas inmunosuprimidas, ya que existe un pequeño riesgo de que el virus revierta a una forma virulenta y cause enfermedad. La IPV es la opción segura para inmunosuprimidos.</li><li class="mb-2"><b>No genera inmunidad de rebaño (Incorrecta):</b> La OPV sí genera inmunidad de rebaño de manera muy efectiva porque el virus atenuado se replica y se excreta, pudiendo inmunizar a contactos no vacunados y reduciendo la circulación del virus en la comunidad.</li><li class="mb-2"><b>No requiere múltiples dosis para generar protección (Incorrecta):</b> Ambas vacunas, Sabin y Salk, generalmente requieren múltiples dosis para una protección completa y duradera.</li></ul>' },
+                { id: 46, category: 'procesos', question: '¿Cuál es el principal objetivo de alcanzar la inmunidad de rebaño en una población?', options: [ { text: 'Garantizar que todos los individuos desarrollen inmunidad natural a la enfermedad', correct: false }, { text: 'Eliminar la necesidad de vacunación en personas inmunodeprimidas', correct: false }, { text: 'Reducir la transmisión de la enfermedad entre los individuos susceptibles', correct: true }, { text: 'Prevenir infecciones solo en los grupos de alto riesgo', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Reducir la transmisión de la enfermedad entre los individuos susceptibles (Respuesta Correcta):</b> La inmunidad de rebaño (o inmunidad colectiva) se logra cuando una proporción suficientemente alta de la población es inmune a una enfermedad infecciosa (ya sea por vacunación o por infección previa). El objetivo principal es proteger indirectamente a los individuos susceptibles (ej., bebés, inmunodeprimidos, aquellos que no pueden ser vacunados) al reducir la probabilidad de que el patógeno circule y encuentre huéspedes susceptibles.</li><li class="mb-2"><b>Garantizar que todos los individuos desarrollen inmunidad natural a la enfermedad (Incorrecta):</b> La inmunidad de rebaño se puede lograr por vacunación, no necesariamente por inmunidad natural, y su objetivo es proteger a los susceptibles, no que todos desarrollen inmunidad.</li><li class="mb-2"><b>Eliminar la necesidad de vacunación en personas inmunodeprimidas (Incorrecta):</b> Si bien la inmunidad de rebaño protege a los inmunodeprimidos, no elimina la necesidad de vacunación en general; más bien, es un efecto de una alta tasa de vacunación en la población.</li><li class="mb-2"><b>Prevenir infecciones solo en los grupos de alto riesgo (Incorrecta):</b> El objetivo es reducir la transmisión general, lo que beneficia a todos, incluidos los de alto riesgo, pero no se limita solo a ellos.</li></ul>' },
+                { id: 47, category: 'patologia', question: 'La reacción de hipersensibilidad tipo III, de la clasificación de Coombs y Gell, es debida a:', options: [ { text: 'Depósito de inmunocomplejos', correct: true }, { text: 'Un aumento en la actividad de los LT citotóxicos', correct: false }, { text: 'Una excesiva destrucción del antígeno', correct: false }, { text: 'Un exceso en la producción de IgM', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Depósito de inmunocomplejos (Respuesta Correcta):</b> La hipersensibilidad tipo III es causada por la formación de complejos antígeno-anticuerpo (inmunocomplejos) circulantes que se depositan en los tejidos (vasos sanguíneos, glomérulos renales, articulaciones). Estos complejos activan el sistema del complemento y atraen células inflamatorias como los neutrófilos, lo que lleva a daño tisular.</li><li class="mb-2"><b>Un aumento en la actividad de los LT citotóxicos (Incorrecta):</b> Esto es característico de la hipersensibilidad tipo IV (mediada por células).</li><li class="mb-2"><b>Una excesiva destrucción del antígeno (Incorrecta):</b> Si bien la eliminación del antígeno es parte de la respuesta inmune, no es el mecanismo patogénico central de la hipersensibilidad tipo III.</li><li class="mb-2"><b>Un exceso en la producción de IgM (Incorrecta):</b> Aunque la IgM puede formar complejos inmunes, la patogenia de la tipo III se centra en el depósito de estos complejos, no solo en la producción excesiva de un isotipo específico.</li></ul>' },
+                { id: 48, category: 'patologia', question: 'El mecanismo más plausible por el cual un individuo desarrolla fiebre reumática asociada a la infección por Streptococcus pyogenes es el mimetismo molecular.', options: [ { text: 'Verdadero', correct: true }, { text: 'Falso', correct: false } ], isMultipleChoice: false, explanation: '<ul><li class="mb-2"><b>Verdadero (Respuesta Correcta):</b> La fiebre reumática aguda es una enfermedad autoinmune post-estreptocócica. Se cree que es causada por el **mimetismo molecular**, donde los anticuerpos y las células T generadas contra los antígenos de *Streptococcus pyogenes* (especialmente la proteína M) reaccionan de forma cruzada con antígenos similares presentes en los tejidos del huésped (ej., corazón, articulaciones, cerebro), lo que lleva a la inflamación y el daño tisular.</li></ul>' },
+                
+                // --- NUEVAS PREGUNTAS AVANZADAS (IDs 49+) ---
+                {
+                    id: 49,
+                    category: 'procesos',
+                    question: '¿Cuál es la función principal del factor de transcripción AIRE (Autoimmune Regulator) en el timo?',
+                    options: [
+                        { text: 'Promover la selección positiva de timocitos CD4+', correct: false },
+                        { text: 'Inducir la expresión ectópica de antígenos tejido-específicos en las células epiteliales medulares', correct: true },
+                        { text: 'Activar la recombinasa RAG1/RAG2 para la edición del receptor de células T', correct: false },
+                        { text: 'Facilitar la migración de los timocitos desde la corteza a la médula tímica', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Expresión ectópica de antígenos (Respuesta Correcta):</b> AIRE es crucial para la tolerancia central. Induce la transcripción de miles de antígenos que normalmente solo se expresan en tejidos periféricos (ej. insulina, tiroglobulina) dentro de las células epiteliales medulares del timo (mTECs). Esto permite que los timocitos autorreactivos en desarrollo encuentren estos autoantígenos y sean eliminados por selección negativa, previniendo la autoinmunidad.</li><li class="mb-2"><b>Selección positiva (Incorrecto):</b> La selección positiva ocurre en la corteza tímica y depende de la interacción de los timocitos con moléculas MHC propias en células epiteliales corticales, un proceso independiente de AIRE.</li><li class="mb-2"><b>Activar RAG (Incorrecto):</b> Los genes RAG son responsables de la recombinación V(D)J y se expresan en etapas más tempranas del desarrollo de timocitos; AIRE no regula su actividad.</li><li class="mb-2"><b>Facilitar migración (Incorrecto):</b> La migración de timocitos es guiada por quimiocinas como CCL19/CCL21 y sus receptores (CCR7), no por AIRE.</li></ul>'
+                },
+                {
+                    id: 50,
+                    category: 'patologia',
+                    question: 'Un paciente con infecciones recurrentes por bacterias piógenas encapsuladas y niveles séricos de IgG, IgA e IgM casi indetectables, pero con un número normal de linfocitos B circulantes, probablemente sufre de:',
+                    options: [
+                        { text: 'Agammaglobulinemia ligada al X (Enfermedad de Bruton)', correct: false },
+                        { text: 'Inmunodeficiencia Común Variable (IDCV)', correct: true },
+                        { text: 'Síndrome de Hiper-IgM', correct: false },
+                        { text: 'Deficiencia Selectiva de IgA', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Inmunodeficiencia Común Variable (IDCV) (Respuesta Correcta):</b> La IDCV se caracteriza por una marcada hipogammaglobulinemia (bajos niveles de IgG, IgA y/o IgM) y una respuesta de anticuerpos deficiente a la vacunación, a pesar de tener un número normal o solo ligeramente reducido de linfocitos B. El defecto principal radica en la diferenciación de los linfocitos B a células plasmáticas secretoras de anticuerpos.</li><li class="mb-2"><b>Enfermedad de Bruton (Incorrecto):</b> En esta enfermedad, un defecto en la tirosina quinasa de Bruton (BTK) detiene la maduración de los linfocitos B en la médula ósea. Por lo tanto, los pacientes tienen una ausencia casi total de linfocitos B circulantes.</li><li class="mb-2"><b>Síndrome de Hiper-IgM (Incorrecto):</b> Este síndrome se caracteriza por niveles normales o elevados de IgM y niveles muy bajos de IgG, IgA e IgE, debido a un defecto en el cambio de isotipo, a menudo por mutaciones en CD40L (en linfocitos T) o CD40 (en linfocitos B).</li><li class="mb-2"><b>Deficiencia Selectiva de IgA (Incorrecto):</b> Es la inmunodeficiencia primaria más común, pero como su nombre indica, solo afecta a la IgA, mientras que los niveles de IgG e IgM suelen ser normales.</li></ul>'
+                },
+                {
+                    id: 51,
+                    category: 'celulas',
+                    question: '¿Cuál de las siguientes combinaciones de molécula y función es INCORRECTA con respecto a las Células Linfoides Innatas (ILCs)?',
+                    options: [
+                        { text: 'ILC1 - Producción de IFN-γ - Defensa contra virus', correct: false },
+                        { text: 'ILC2 - Producción de IL-5 e IL-13 - Expulsión de helmintos', correct: false },
+                        { text: 'ILC3 - Producción de IL-22 - Integridad de la barrera intestinal', correct: false },
+                        { text: 'LTi - Producción de IL-4 - Formación de centros germinales', correct: true }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>LTi - Producción de IL-4 (Respuesta Correcta):</b> Esta afirmación es incorrecta. Las células inductoras de tejido linfoide (LTi), un subtipo de ILC3, son cruciales para la formación de órganos linfoides secundarios (como ganglios linfáticos y placas de Peyer) durante el desarrollo. Su función principal está mediada por la producción de linfo-toxina (LTα1β2), no de IL-4. La IL-4 es una citocina característica de la inmunidad tipo 2 (Th2 e ILC2).</li><li class="mb-2"><b>ILC1 (Incorrecto):</b> Las ILC1 son la contraparte innata de las células Th1, producen IFN-γ y son importantes en la defensa contra patógenos intracelulares como los virus.</li><li class="mb-2"><b>ILC2 (Incorrecto):</b> Las ILC2 son análogas a las células Th2, producen citocinas tipo 2 como IL-5 (para eosinófilos) e IL-13 (para producción de moco y reparación tisular), clave en la inmunidad antihelmíntica y en la alergia.</li><li class="mb-2"><b>ILC3 (Incorrecto):</b> Las ILC3, análogas a las Th17, producen IL-17 y/o IL-22. La IL-22 es vital para mantener la integridad de las barreras epiteliales, como en el intestino, al inducir la producción de péptidos antimicrobianos.</li></ul>'
+                },
+                {
+                    id: 52,
+                    category: 'patologia',
+                    question: 'La terapia con células CAR-T dirigida a CD19 ha revolucionado el tratamiento de neoplasias de células B. ¿Cuál es el efecto adverso más común y potencialmente mortal asociado a esta terapia?',
+                    options: [
+                        { text: 'Enfermedad de injerto contra huésped (EICH)', correct: false },
+                        { text: 'Síndrome de lisis tumoral', correct: false },
+                        { text: 'Síndrome de liberación de citoquinas (SLC)', correct: true },
+                        { text: 'Aplasia de células B a largo plazo', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Síndrome de Liberación de Citoquinas (SLC) (Respuesta Correcta):</b> El SLC es una respuesta inflamatoria sistémica masiva causada por la activación de un gran número de células CAR-T y otras células inmunes. Se caracteriza por fiebre alta, hipotensión, hipoxia y disfunción multiorgánica. Es la toxicidad más frecuente y grave, y su manejo con anticuerpos anti-IL-6R (Tocilizumab) es crucial.</li><li class="mb-2"><b>EICH (Incorrecto):</b> La EICH ocurre en trasplantes alogénicos, donde las células inmunes del donante atacan los tejidos del receptor. La terapia CAR-T utiliza las propias células T del paciente (autólogas), por lo que no hay riesgo de EICH.</li><li class="mb-2"><b>Síndrome de lisis tumoral (Incorrecto):</b> Aunque puede ocurrir debido a la rápida destrucción de células cancerosas, es una complicación metabólica (hiperuricemia, hiperfosfatemia, etc.) y, aunque grave, es menos específica y universal que el SLC en el contexto de CAR-T.</li><li class="mb-2"><b>Aplasia de células B (Incorrecto):</b> Es un efecto adverso esperado y manejable, ya que las células CAR-T eliminan todas las células que expresan CD19, tanto malignas como normales. Conduce a hipogammaglobulinemia y requiere terapia de reemplazo con inmunoglobulinas. Aunque es una toxicidad "on-target, off-tumor", no es la complicación aguda más mortal como el SLC.</li></ul>'
+                },
+                {
+                    id: 53,
+                    category: 'procesos',
+                    question: 'Durante la respuesta de anticuerpos en un centro germinal, la enzima Deaminasa de Citidina Inducida por Activación (AID) es fundamental para:',
+                    options: [
+                        { text: 'La recombinación V(D)J en los centrocitos', correct: false },
+                        { text: 'La presentación de antígenos por los linfocitos B a los linfocitos Tfh', correct: false },
+                        { text: 'La generación de diversidad de unión (junctional diversity) mediante adición de nucleótidos P y N', correct: false },
+                        { text: 'La hipermutación somática y el cambio de isotipo de inmunoglobulinas', correct: true }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Hipermutación somática y cambio de isotipo (Respuesta Correcta):</b> AID es una enzima maestra expresada exclusivamente en linfocitos B activados en los centros germinales. Inicia tanto la hipermutación somática (SHM) como el cambio de isotipo (CSR) al deaminar citidinas a uracilos en el ADN de los genes de inmunoglobulinas. Esto crea desapareamientos U:G que son procesados por vías de reparación del ADN, introduciendo mutaciones puntuales (SHM) o roturas de doble cadena que permiten la recombinación entre regiones de cambio (CSR).</li><li class="mb-2"><b>Recombinación V(D)J (Incorrecto):</b> Este proceso ocurre en la médula ósea durante el desarrollo temprano de los linfocitos B y es mediado por las enzimas RAG1/RAG2, no por AID.</li><li class="mb-2"><b>Presentación de antígenos (Incorrecto):</b> La presentación de antígenos por los linfocitos B implica la endocitosis del antígeno unido al BCR, su procesamiento y su presentación en moléculas MHC-II, procesos que no involucran a AID.</li><li class="mb-2"><b>Diversidad de unión (Incorrecto):</b> La diversidad de unión es generada durante la recombinación V(D)J por enzimas como TdT y la maquinaria de reparación de roturas de doble cadena, no por AID.</li></ul>'
+                },
+                // Continuar agregando más preguntas hasta alcanzar el objetivo
+                {
+                    id: 54,
+                    category: 'celulas',
+                    question: '¿Qué receptor de la familia de los TLRs es único por utilizar la vía de señalización dependiente de TRIF exclusivamente, sin involucrar a MyD88, para inducir la producción de interferones de tipo I?',
+                    options: [
+                        { text: 'TLR4', correct: false },
+                        { text: 'TLR9', correct: false },
+                        { text: 'TLR3', correct: true },
+                        { text: 'TLR7', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>TLR3 (Respuesta Correcta):</b> TLR3, localizado en los endosomas, reconoce ARN de doble cadena (dsRNA), una firma de replicación viral. Es el único TLR que señaliza exclusivamente a través del adaptador TRIF. Esta vía activa los factores de transcripción IRF3 e IRF7, que son esenciales para la producción de interferones antivirales de tipo I (IFN-α/β).</li><li class="mb-2"><b>TLR4 (Incorrecto):</b> TLR4 es único porque puede utilizar AMBAS vías de señalización. La vía dependiente de MyD88 (en la membrana plasmática) conduce a la producción de citocinas inflamatorias, mientras que la vía dependiente de TRIF (desde el endosoma) induce interferones de tipo I.</li><li class="mb-2"><b>TLR9 (Incorrecto):</b> TLR9, que reconoce ADN CpG no metilado (común en bacterias y virus), señaliza exclusivamente a través de la vía dependiente de MyD88.</li><li class="mb-2"><b>TLR7 (Incorrecto):</b> TLR7, que reconoce ARN de cadena sencilla (ssRNA), también señaliza exclusivamente a través de la vía dependiente de MyD88.</li></ul>'
+                },
+                {
+                    id: 55,
+                    category: 'patologia',
+                    question: 'En el Lupus Eritematoso Sistémico (LES), los complejos inmunes que contienen ácidos nucleicos propios activan potentemente a las células dendríticas plasmocitoides (pDCs) para producir grandes cantidades de IFN-α. ¿Qué receptores son cruciales para este proceso?',
+                    options: [
+                        { text: 'TLR2 y TLR4', correct: false },
+                        { text: 'Receptores de lectina tipo C (CLRs)', correct: false },
+                        { text: 'TLR7 y TLR9', correct: true },
+                        { text: 'NOD1 y NOD2', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>TLR7 y TLR9 (Respuesta Correcta):</b> En el LES, los autoanticuerpos se unen a ácidos nucleicos propios (ARN y ADN) liberados por células apoptóticas. Estos complejos inmunes son internalizados por las pDCs. Dentro de los endosomas, el ARN activa a TLR7 y el ADN activa a TLR9. Esta activación masiva de los TLRs endosomales es una característica patogénica central del LES, conduciendo a la producción de IFN-α que perpetúa la respuesta autoinmune.</li><li class="mb-2"><b>TLR2 y TLR4 (Incorrecto):</b> Estos TLRs reconocen principalmente componentes de la pared bacteriana (lipoproteínas y LPS, respectivamente) y no son los sensores primarios de los autoantígenos nucleares en el LES.</li><li class="mb-2"><b>CLRs (Incorrecto):</b> Los receptores de lectina tipo C reconocen carbohidratos, principalmente de hongos y otros microbios, y no están directamente implicados en el reconocimiento de ácidos nucleicos en esta patología.</li><li class="mb-2"><b>NOD1 y NOD2 (Incorrecto):</b> Son receptores citosólicos que reconocen peptidoglicanos bacterianos. No participan en la detección de complejos inmunes en los endosomas.</li></ul>'
+                },
+                {
+                    id: 56,
+                    category: 'procesos',
+                    question: 'El fenómeno de "licencia" de las células dendríticas (DCs), esencial para una imprimación efectiva de linfocitos T CD8+, se refiere a:',
+                    options: [
+                        { text: 'La capacidad de las DCs de migrar desde los tejidos periféricos a los ganglios linfáticos.', correct: false },
+                        { text: 'La interacción entre una DC y un linfocito T CD4+ helper, que autoriza a la DC para activar a un linfocito T CD8+.', correct: true },
+                        { text: 'La presentación cruzada de antígenos exógenos en moléculas MHC de clase I por la DC.', correct: false },
+                        { text: 'La regulación negativa de la función de la DC mediada por linfocitos T reguladores (Tregs).', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Interacción con LT CD4+ (Respuesta Correcta):</b> El modelo de licencia postula que para que una DC pueda activar de forma óptima a un linfocito T CD8+ virgen, primero debe ser "licenciada" por un linfocito T CD4+ helper activado. Esta licencia ocurre a través de la interacción CD40L (en el LT CD4+) y CD40 (en la DC), lo que induce en la DC una mayor expresión de moléculas coestimuladoras (como B7) y citocinas (como IL-12), haciéndola mucho más potente para activar a los LT CD8+.</li><li class="mb-2"><b>Migración (Incorrecto):</b> La migración es un paso previo y necesario para la presentación de antígenos, pero no es el concepto de licencia en sí.</li><li class="mb-2"><b>Presentación cruzada (Incorrecto):</b> La presentación cruzada es el mecanismo por el cual la DC presenta antígenos exógenos en MHC-I, lo cual es necesario para activar a los LT CD8+, pero la "licencia" es un paso de regulación adicional que potencia esta activación.</li><li class="mb-2"><b>Regulación por Tregs (Incorrecto):</b> La interacción con Tregs lleva a la supresión de la función de la DC, lo contrario a la licencia.</li></ul>'
+                },
+                {
+                    id: 57,
+                    category: 'patologia',
+                    question: 'La terapia de bloqueo de puntos de control inmunitario con anticuerpos anti-PD-1 (ej. Pembrolizumab) funciona al:',
+                    options: [
+                        { text: 'Bloquear la interacción inhibidora entre PD-1 en los linfocitos T y PD-L1/PD-L2 en las células tumorales.', correct: true },
+                        { text: 'Impedir la señal coestimuladora inicial entre CD28 en los linfocitos T y B7 en las APCs.', correct: false },
+                        { text: 'Depletar los linfocitos T reguladores (Tregs) que expresan altos niveles de PD-1.', correct: false },
+                        { text: 'Activar directamente a las células NK para que reconozcan y eliminen las células tumorales.', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Bloquear la interacción PD-1/PD-L1 (Respuesta Correcta):</b> PD-1 es un receptor inhibidor expresado en linfocitos T activados. Muchas células tumorales sobreexpresan su ligando, PD-L1, para "apagar" a los linfocitos T que intentan atacarlas, un mecanismo clave de evasión inmune. Los anticuerpos anti-PD-1 bloquean esta interacción, liberando el "freno" de los linfocitos T y restaurando su capacidad para eliminar las células cancerosas.</li><li class="mb-2"><b>Impedir coestimulación (Incorrecto):</b> Esto describe el mecanismo de acción de fármacos como Abatacept (CTLA4-Ig), que bloquea la coestimulación y se usa para tratar enfermedades autoinmunes, no para activar la inmunidad antitumoral.</li><li class="mb-2"><b>Depletar Tregs (Incorrecto):</b> Aunque los anticuerpos anti-CTLA-4 (como Ipilimumab) pueden tener un efecto de depleción de Tregs en el microambiente tumoral, el mecanismo principal de los anti-PD-1 es el bloqueo de la señal inhibidora en los linfocitos T efectores.</li><li class="mb-2"><b>Activar células NK (Incorrecto):</b> El eje PD-1/PD-L1 afecta principalmente a la inmunidad adaptativa de las células T. Aunque las células NK pueden expresar PD-1, este no es el mecanismo de acción primario y más establecido de esta terapia.</li></ul>'
+                },
+                {
+                    id: 58,
+                    category: 'celulas',
+                    question: '¿Cuál de las siguientes afirmaciones describe mejor a los linfocitos T foliculares helper (Tfh)?',
+                    options: [
+                        { text: 'Son una subpoblación de LT CD8+ que residen en los folículos de los ganglios linfáticos.', correct: false },
+                        { text: 'Producen grandes cantidades de IFN-γ y son cruciales para la activación de macrófagos.', correct: false },
+                        { text: 'Expresan el factor de transcripción Bcl-6 y el receptor de quimiocinas CXCR5, y son esenciales para la formación de centros germinales.', correct: true },
+                        { text: 'Secretan IL-10 y TGF-β para suprimir las respuestas de los linfocitos B autorreactivos.', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Bcl-6 y CXCR5 (Respuesta Correcta):</b> Las células Tfh son una subpoblación especializada de linfocitos T CD4+. Su diferenciación es dirigida por el factor de transcripción maestro Bcl-6. Expresan el receptor de quimiocinas CXCR5, que las guía hacia los folículos de los linfocitos B en los órganos linfoides secundarios. Una vez allí, proporcionan ayuda crucial a los linfocitos B a través de la interacción CD40L-CD40 y la secreción de citocinas como IL-21 e IL-4, lo que es indispensable para la formación de centros germinales, la hipermutación somática y el cambio de isotipo.</li><li class="mb-2"><b>Subpoblación de LT CD8+ (Incorrecto):</b> Son células CD4+, no CD8+.</li><li class="mb-2"><b>Productores de IFN-γ (Incorrecto):</b> Esta es la descripción de las células Th1. Aunque las Tfh pueden producir algo de IFN-γ, su citocina característica es la IL-21.</li><li class="mb-2"><b>Supresores (Incorrecto):</b> Esto describe a los linfocitos T reguladores (Tregs) o a los linfocitos T foliculares reguladores (Tfr), que contrarrestan la función de las Tfh.</li></ul>'
+                },
+                {
+                    id: 59,
+                    category: 'procesos',
+                    question: 'El "pecado original antigénico" es un fenómeno inmunológico que describe:',
+                    options: [
+                        { text: 'La incapacidad del sistema inmune para responder a un antígeno completamente nuevo.', correct: false },
+                        { text: 'La tendencia del sistema inmune a depender preferentemente de la respuesta de memoria a la primera cepa de un patógeno con la que se encontró, incluso cuando se enfrenta a una cepa nueva pero relacionada.', correct: true },
+                        { text: 'La eliminación de linfocitos autorreactivos en el timo, que es el "pecado original" que previene la autoinmunidad.', correct: false },
+                        { text: 'La primera respuesta de anticuerpos a un patógeno, que es siempre de isotipo IgM.', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Dependencia de la memoria primaria (Respuesta Correcta):</b> Este fenómeno, observado prominentemente con virus como la influenza, ocurre cuando la respuesta inmune a una variante antigénica de un patógeno está dominada por la reactivación de células de memoria generadas contra la cepa original. Esto puede ser beneficioso si los epítopos están conservados, pero puede ser perjudicial si conduce a la producción de anticuerpos de baja afinidad contra la nueva cepa, inhibiendo la generación de una respuesta primaria más específica y efectiva.</li><li class="mb-2"><b>Incapacidad de responder (Incorrecto):</b> El sistema inmune es capaz de responder a antígenos nuevos; esto describe una inmunodeficiencia, no el pecado original antigénico.</li><li class="mb-2"><b>Tolerancia central (Incorrecto):</b> Esto describe un proceso fundamental del desarrollo de linfocitos, no una característica de la respuesta de memoria.</li><li class="mb-2"><b>Respuesta primaria de IgM (Incorrecto):</b> Si bien es cierto que la IgM es el primer isotipo en una respuesta primaria, esto no define el concepto de pecado original antigénico, que se relaciona con la memoria inmunológica.</li></ul>'
+                },
+                {
+                    id: 60,
+                    category: 'patologia',
+                    question: 'En la esclerosis múltiple, el daño a la mielina en el sistema nervioso central es mediado principalmente por una respuesta autoinmune dirigida por:',
+                    options: [
+                        { text: 'Células Th2 que producen IL-4 y activan a los eosinófilos.', correct: false },
+                        { text: 'Células Th1 y Th17 que infiltran el SNC y activan macrófagos y neutrófilos.', correct: true },
+                        { text: 'Linfocitos B que producen autoanticuerpos contra los receptores de acetilcolina.', correct: false },
+                        { text: 'Células NK que atacan directamente a los oligodendrocitos a través de citotoxicidad natural.', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Th1 y Th17 (Respuesta Correcta):</b> La esclerosis múltiple es una enfermedad autoinmune órgano-específica del SNC. La patogenia implica la activación de linfocitos T autorreactivos contra proteínas de la mielina (como MBP, MOG, PLP). Las células Th1, productoras de IFN-γ, activan macrófagos que fagocitan la mielina. Las células Th17, productoras de IL-17, reclutan neutrófilos y promueven la inflamación, rompiendo la barrera hematoencefálica y facilitando la infiltración de células inmunes.</li><li class="mb-2"><b>Células Th2 (Incorrecto):</b> La inmunidad tipo 2 no es la principal impulsora del daño en la esclerosis múltiple; de hecho, a veces se considera protectora o reguladora en este contexto.</li><li class="mb-2"><b>Autoanticuerpos contra receptores de acetilcolina (Incorrecto):</b> Este es el mecanismo patogénico de la miastenia gravis, no de la esclerosis múltiple.</li><li class="mb-2"><b>Células NK (Incorrecto):</b> Aunque las células NK pueden estar presentes en las lesiones, el ataque primario es orquestado por la inmunidad adaptativa de las células T.</li></ul>'
+                },
+                {
+                    id: 61,
+                    category: 'celulas',
+                    question: 'Los receptores tipo RIG-I (RLRs) son sensores citosólicos cruciales en la inmunidad antiviral. ¿Qué característica molecular del ARN viral es reconocida específicamente por RIG-I?',
+                    options: [
+                        { text: 'ARN de doble cadena largo (>2000 pb).', correct: false },
+                        { text: 'ARN de cadena sencilla con secuencias ricas en G-U.', correct: false },
+                        { text: 'ARN de cadena corta con un grupo 5\'-trifosfato y sin caperuza.', correct: true },
+                        { text: 'ADN CpG no metilado que ha escapado del endosoma.', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>ARN 5\'-trifosfato (Respuesta Correcta):</b> RIG-I se especializa en detectar productos de la replicación de muchos virus de ARN. Reconoce ARN de cadena corta que posee un grupo 5\'-trifosfato, una característica de los genomas virales nacientes que está ausente en los ARNm celulares del huésped, los cuales son modificados con una caperuza de 7-metilguanosina. Esta distinción entre "propio" y "no propio" es fundamental para iniciar una respuesta antiviral sin causar autoinmunidad.</li><li class="mb-2"><b>ARN de doble cadena largo (Incorrecto):</b> El ARN de doble cadena largo es el principal ligando de otro RLR, MDA5, no de RIG-I.</li><li class="mb-2"><b>ARN de cadena sencilla rico en G-U (Incorrecto):</b> Este es un ligando para TLR7/8 en los endosomas.</li><li class="mb-2"><b>ADN CpG no metilado (Incorrecto):</b> Este es el ligando para TLR9 en endosomas o para sensores de ADN citosólicos como cGAS.</li></ul>'
+                },
+                {
+                    id: 62,
+                    category: 'procesos',
+                    question: 'La edición del receptor de linfocitos B es un mecanismo de tolerancia central que ocurre cuando:',
+                    options: [
+                        { text: 'Un linfocito B en el centro germinal aumenta la afinidad de su BCR mediante hipermutación somática.', correct: false },
+                        { text: 'Un linfocito B inmaduro en la médula ósea reconoce un autoantígeno multivalente con alta avidez, lo que induce la reactivación de los genes RAG.', correct: true },
+                        { text: 'Un linfocito B maduro en la periferia encuentra un autoantígeno en ausencia de ayuda T, volviéndose anérgico.', correct: false },
+                        { text: 'Un linfocito B cambia el isotipo de su anticuerpo de IgM a IgG.', correct: false }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Reactivación de RAG en médula ósea (Respuesta Correcta):</b> La edición del receptor es una segunda oportunidad para los linfocitos B autorreactivos. Si un linfocito B inmaduro se une fuertemente a un autoantígeno en la médula ósea, en lugar de ser eliminado, puede reactivar la maquinaria de recombinación RAG. Esto le permite realizar una nueva recombinación VJ en el locus de la cadena ligera, reemplazando la cadena ligera autorreactiva por una nueva. Si el nuevo BCR ya no es autorreactivo, la célula puede continuar su maduración y salir a la periferia.</li><li class="mb-2"><b>Aumento de afinidad (Incorrecto):</b> Esto describe la maduración de la afinidad, un proceso que ocurre en la periferia durante una respuesta inmune, no un mecanismo de tolerancia central.</li><li class="mb-2"><b>Anergia periférica (Incorrecto):</b> Esto describe un mecanismo de tolerancia periférica, no la edición del receptor que ocurre en la médula ósea.</li><li class="mb-2"><b>Cambio de isotipo (Incorrecto):</b> Este es un proceso de la respuesta inmune efectora y no está relacionado con la tolerancia central.</li></ul>'
+                },
+                {
+                    id: 63,
+                    category: 'patologia',
+                    question: 'Un paciente presenta una inmunodeficiencia caracterizada por albinismo oculocutáneo parcial, infecciones piógenas recurrentes y la presencia de gránulos lisosomales gigantes en neutrófilos y otras células. ¿Cuál es el diagnóstico más probable?',
+                    options: [
+                        { text: 'Síndrome de Wiskott-Aldrich', correct: false },
+                        { text: 'Síndrome de DiGeorge', correct: false },
+                        { text: 'Ataxia-Telangiectasia', correct: false },
+                        { text: 'Síndrome de Chédiak-Higashi', correct: true }
+                    ],
+                    isMultipleChoice: false,
+                    explanation: '<ul><li class="mb-2"><b>Síndrome de Chédiak-Higashi (Respuesta Correcta):</b> Este es un raro trastorno autosómico recesivo causado por una mutación en el gen LYST (o CHS1), que regula el tráfico de vesículas lisosomales. El defecto conduce a la fusión de lisosomas, formando gránulos gigantes característicos. Esto afecta la función de múltiples células, incluyendo la quimiotaxis y degranulación de neutrófilos (causando infecciones), la función citotóxica de las células NK y LT CD8+, y la distribución de melanosomas en los melanocitos (causando albinismo).</li><li class="mb-2"><b>Síndrome de Wiskott-Aldrich (Incorrecto):</b> Se caracteriza por la tríada de eczema, trombocitopenia e inmunodeficiencia combinada, debido a un defecto en la proteína WASp que afecta la reorganización del citoesqueleto de actina.</li><li class="mb-2"><b>Síndrome de DiGeorge (Incorrecto):</b> Es causado por una deleción en el cromosoma 22q11.2 que afecta el desarrollo del timo, resultando en una deficiencia de células T, junto con anomalías cardíacas e hipocalcemia.</li><li class="mb-2"><b>Ataxia-Telangiectasia (Incorrecto):</b> Es causada por mutaciones en el gen ATM, involucrado en la reparación del ADN. Se caracteriza por ataxia cerebelosa, telangiectasias oculocutáneas e inmunodeficiencia combinada.</li></ul>'
+                }
+            ];
+
+            // --- LÓGICA DE LA APLICACIÓN (SIN CAMBIOS) ---
+            let currentQuestionIndex = 0;
+            let filteredQuestions = [...questions];
+            let answered = false;
+            let userSelections = {}; // For multiple choice questions
+
+            const questionTextEl = document.getElementById('question-text');
+            const optionsContainerEl = document.getElementById('options-container');
+            const explanationContainerEl = document.getElementById('explanation-container');
+            const explanationTextEl = document.getElementById('explanation-text');
+            const progressEl = document.getElementById('progress');
+            const nextBtn = document.getElementById('next-btn');
+            const prevBtn = document.getElementById('prev-btn');
+            const categoryFilters = document.getElementById('category-filters');
+            const explainMoreBtn = document.getElementById('explain-more-btn');
+            const explainMoreSpinner = document.getElementById('explain-more-spinner');
+            const aiExplanationContainer = document.getElementById('ai-explanation-container');
+            const aiExplanationText = document.getElementById('ai-explanation-text');
+
+            function renderQuestion(index) {
+                answered = false;
+                userSelections = {};
+                const question = filteredQuestions[index];
+                
+                if (!question) {
+                    // Handle case where no questions are available for a filter
+                    questionTextEl.textContent = "No hay preguntas en esta categoría.";
+                    optionsContainerEl.innerHTML = '';
+                    explanationContainerEl.classList.remove('visible');
+                    progressEl.textContent = `Pregunta 0 de 0`;
+                    prevBtn.disabled = true;
+                    nextBtn.disabled = true;
+                    return;
+                }
+
+                questionTextEl.textContent = question.question;
+                optionsContainerEl.innerHTML = '';
+                
+                question.options.forEach((option, optIndex) => {
+                    const button = document.createElement('button');
+                    button.innerHTML = option.text;
+                    button.classList.add('option-card', 'w-full', 'p-4', 'text-left', 'bg-white', 'rounded-xl', 'border-2', 'border-slate-200', 'hover:border-amber-400', 'focus:outline-none', 'focus:ring-2', 'focus:ring-amber-400', 'focus:ring-offset-2', 'transition', 'text-slate-700');
+                    button.dataset.correct = option.correct;
+                    button.dataset.index = optIndex;
+                    optionsContainerEl.appendChild(button);
+                    button.addEventListener('click', () => selectAnswer(button, question));
+                });
+                
+                explanationContainerEl.classList.remove('visible');
+                explanationTextEl.innerHTML = question.explanation;
+                aiExplanationContainer.classList.add('hidden');
+                aiExplanationText.innerHTML = ''; 
+                explainMoreBtn.disabled = false;
+                explainMoreSpinner.classList.add('hidden');
+
+                progressEl.textContent = `Pregunta ${index + 1} de ${filteredQuestions.length}`;
+                prevBtn.disabled = index === 0;
+                nextBtn.disabled = index === filteredQuestions.length - 1;
+            }
+
+            function selectAnswer(selectedButton, question) {
+                if (answered) return;
+
+                answered = true;
+                const buttons = optionsContainerEl.querySelectorAll('.option-card');
+
+                if (question.isMultipleChoice) {
+                    // For multiple choice, we reveal answers immediately on first click
+                    let allCorrectlySelected = true;
+                    let anyIncorrectSelected = false;
+
+                    // First, let's determine the user's selection state
+                    const userSelectedIndices = new Set();
+                    userSelectedIndices.add(parseInt(selectedButton.dataset.index));
+
+                    // This logic assumes we evaluate on the first click for simplicity
+                    // A more complex logic would require a "Submit" button for MCQs
+                    buttons.forEach(button => {
+                        const isCorrect = button.dataset.correct === 'true';
+                        const isSelected = button === selectedButton;
+
+                        if (isCorrect) {
+                            button.classList.add('correct-answer');
+                        }
+                        if (isSelected && !isCorrect) {
+                            button.classList.add('incorrect-answer');
+                        }
+                        button.disabled = true;
+                    });
+
+                } else { // Single choice logic
+                    const isCorrect = selectedButton.dataset.correct === 'true';
+                    buttons.forEach(button => {
+                        button.disabled = true;
+                        if (button.dataset.correct === 'true') {
+                            button.classList.add('correct-answer');
+                        }
+                        if (button === selectedButton && !isCorrect) {
+                            button.classList.add('incorrect-answer');
+                        }
+                    });
+                }
+                
+                explanationContainerEl.classList.add('visible');
+            }
+
+            async function getAIExplanation() {
+                explainMoreBtn.disabled = true;
+                explainMoreSpinner.classList.remove('hidden');
+                aiExplanationContainer.classList.add('hidden');
+                aiExplanationText.innerHTML = '';
+
+                const currentQuestion = filteredQuestions[currentQuestionIndex];
+                const prompt = `Dada la siguiente pregunta de inmunología y su explicación, proporciona una explicación ligeramente más detallada y elaborada, centrándote en conceptos clave y sus implicaciones. Mantenla concisa pero añade más profundidad que la explicación original.
+                Pregunta: ${currentQuestion.question}
+                Explicación Original: ${explanationTextEl.innerHTML}`;
+
+                try {
+                    let chatHistory = [];
+                    chatHistory.push({ role: "user", parts: [{ text: prompt }] });
+                    const payload = { contents: chatHistory };
+                    const apiKey = ""; // API key will be handled by the environment
+                    const apiUrl = `https://generativelanguage.googleapis.com/v1beta/models/gemini-2.0-flash:generateContent?key=${apiKey}`;
+                    
+                    const response = await fetch(apiUrl, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(payload)
+                    });
+                    const result = await response.json();
+
+                    if (result.candidates && result.candidates.length > 0 &&
+                        result.candidates[0].content && result.candidates[0].content.parts &&
+                        result.candidates[0].content.parts.length > 0) {
+                        const text = result.candidates[0].content.parts[0].text;
+                        aiExplanationText.innerHTML = text.replace(/\n/g, '<br>'); // Basic formatting
+                        aiExplanationContainer.classList.remove('hidden');
+                    } else {
+                        throw new Error('Invalid AI response structure');
+                    }
+                } catch (error) {
+                    console.error('Error fetching AI explanation:', error);
+                    aiExplanationText.innerHTML = 'Hubo un error al conectar con la IA. Por favor, inténtalo de nuevo más tarde.';
+                    aiExplanationContainer.classList.remove('hidden');
+                } finally {
+                    explainMoreSpinner.classList.add('hidden');
+                    // We can leave the button disabled to prevent multiple requests
+                }
+            }
+
+            function showNext() {
+                if (currentQuestionIndex < filteredQuestions.length - 1) {
+                    currentQuestionIndex++;
+                    renderQuestion(currentQuestionIndex);
+                }
+            }
+
+            function showPrev() {
+                if (currentQuestionIndex > 0) {
+                    currentQuestionIndex--;
+                    renderQuestion(currentQuestionIndex);
+                }
+            }
+
+            function filterQuestions(category) {
+                if (category === 'all') {
+                    filteredQuestions = [...questions];
+                } else {
+                    filteredQuestions = questions.filter(q => q.category === category);
+                }
+                currentQuestionIndex = 0;
+                renderQuestion(currentQuestionIndex);
+
+                document.querySelectorAll('.btn-filter').forEach(btn => btn.classList.remove('active'));
+                document.querySelector(`.btn-filter[data-category="${category}"]`).classList.add('active');
+            }
+
+            nextBtn.addEventListener('click', showNext);
+            prevBtn.addEventListener('click', showPrev);
+            explainMoreBtn.addEventListener('click', getAIExplanation);
+            categoryFilters.addEventListener('click', (e) => {
+                if (e.target.tagName === 'BUTTON') {
+                    filterQuestions(e.target.dataset.category);
+                }
+            });
+
+            // Initial render
+            renderQuestion(currentQuestionIndex);
+        });
+    </script>
+</body>
+</html>
